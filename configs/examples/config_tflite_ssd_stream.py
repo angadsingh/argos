@@ -9,16 +9,11 @@ class Config:
         # not necessary since it is automatically limited to the speed of the motion detector
         self.video_feed_fps = -1
 
-        #whether to enable MQTT notifications to HA
-        self.send_mqtt = False
-
-        #whether to enable webhook based notifications to HA
-        self.send_webhook = True
-
         # print fps on the console every x frames
         self.fps_print_frames = 10
 
         ## MOTION DETECTOR CONFIG
+
         # size of the smallest box or contour of motion (shown by yellow boxes if md_show_all_contours is True)
         self.md_min_cont_area = 50
 
@@ -43,6 +38,8 @@ class Config:
 
         # do motion detection only within this mask
         self.md_mask = (250, 0, 690, 520)
+
+        ## OBJECT DETECTOR CONFIG
 
         # path to the tensorflow model. will be the "saved_model" directory for a TF2 model
         # or the tflite file for a tf lite model
@@ -91,6 +88,8 @@ class Config:
         # path where above jpegs are stored
         self.tf_output_detection_path = '/home/pi/detections'
 
+        ## PATTERN DETECTOR CONFIG
+
         # enable the person entered/exited pattern detector
         self.door_movement_detection = True
 
@@ -102,10 +101,22 @@ class Config:
         # show the door state in the output video frame
         self.door_detect_show_detection = True
 
+        # duration of time in seconds for which the pattern detection state history needs
+        # to be maintained
+        self.door_detect_state_history_length = 20
+
         # if True you can run through the output video (on the flask server) step by step
         # by pressing any key on the console where you're running stream.py.
         # press 'q' to quit
         self.debug_mode = False
+
+        ## NOTIFIER CONFIG
+
+        #whether to enable MQTT notifications to HA
+        self.send_mqtt = False
+
+        #whether to enable webhook based notifications to HA
+        self.send_webhook = True
 
         # keep sending the last motion state every x seconds (in case HA restarted or just didnt
         # get our message last time
@@ -134,6 +145,8 @@ class Config:
         self.mqtt_port = 1883
         self.mqtt_username = "mqtt"
         self.mqtt_password = "------"
+
+        ## INPUT CONFIG
 
         # supports RTMP, picamera and local video file
         self.input_mode = InputMode.RTMP_STREAM

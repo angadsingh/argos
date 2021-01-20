@@ -286,7 +286,7 @@ if __name__ == '__main__':
     notify_q = SingletonBlockingQueue()
     door_detector = None
     if config.door_movement_detection:
-        door_detector = DoorMovementDetector(broker_q)
+        door_detector = DoorMovementDetector(broker_q, config.door_detect_state_history_length)
     sd = StreamDetector(config, broker_q, door_detector)
     mb = Broker(sd.config, door_detector, broker_q, notify_q)
 

@@ -2,6 +2,11 @@
 
 a spacial-temporal pattern detection system for home automation. Based on [OpenCV](https://opencv.org/) and [Tensorflow](http://tensorflow.org/), can run on raspberry pi and notify [HomeAssistant](hass.io) via MQTT or webhooks.
 
+[![Demo](argos-demo.gif)](https://www.youtube.com/watch?v=YiPb35GiyDE)
+
+
+#### Architecture
+
 ![argos](argos.jpg)
 
 #### Synopsis
@@ -32,7 +37,7 @@ a spacial-temporal pattern detection system for home automation. Based on [OpenC
 
   
 
-Usage:
+#### Usage
 
 *stream.py* - runs the motion detector, object detector (with detection buffer) and pattern detector
 
