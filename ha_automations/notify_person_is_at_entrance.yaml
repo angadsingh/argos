@@ -1,0 +1,17 @@
+alias: Notify when there is someone at the entrance
+description: ''
+trigger:
+  - platform: webhook
+    webhook_id: pi_object_detection_main_door
+condition: []
+action:
+  - service: notify.all_phones
+    data_template:
+      message: 'There''s a {{ trigger.query.object }} at the entrance'
+      data:
+        image: >-
+          https://<your-hass>.duckdns.org:8123/local/detections/{{
+          trigger.query.img }}
+        clickAction: 'http://<stream.py host>:8081'
+  - delay: '00:00:05'
+mode: single

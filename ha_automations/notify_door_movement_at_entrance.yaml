@@ -1,0 +1,37 @@
+alias: Notify when there is a movement pattern at the entrance
+description: ''
+trigger:
+  - platform: webhook
+    webhook_id: pi_pattern_detection_main_door
+condition: []
+action:
+  - service: notify.all_phones
+    data_template:
+      message: >-
+        Someone has {% if trigger.query.pattern == "PERSON_EXITING_DOOR"
+        %}left{% elif trigger.query.pattern == "PERSON_ENTERING_DOOR"
+        %}entered{% endif %} the house
+      data:
+        clickAction: 'http://<stream.py host>:8081'
+        image: >-
+          https://<your-hass>.duckdns.org:8123/local/detections/{{
+          trigger.query.img }}
+  - choose:
+      - conditions:
+          - condition: state
+            entity_id: input_boolean.main_door_person_notifier
+            state: 'on'
+        sequence:
+          - data_template:
+              entity_id: media_player.google_homes
+              message: >-
+                Someone has {% if trigger.query.pattern == "PERSON_EXITING_DOOR"
+                %}left{% elif trigger.query.pattern == "PERSON_ENTERING_DOOR"
+                %}entered{% endif %} the house
+            service: tts.google_translate_say
+          - delay: '00:00:10'
+          - service: media_player.turn_off
+            data: {}
+            entity_id: media_player.google_homes
+    default: []
+mode: single

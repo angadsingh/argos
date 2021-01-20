@@ -1,0 +1,12 @@
+https://medium.com/@madhawavidanapathirana/real-time-human-detection-in-computer-vision-part-2-c7eda27115c6
+https://tech.amikelive.com/node-718/what-object-categories-labels-are-in-coco-dataset/
+https://github.com/EdjeElectronics/TensorFlow-Lite-Object-Detection-on-Android-and-Raspberry-Pi
+https://github.com/EdjeElectronics/TensorFlow-Object-Detection-API-Tutorial-Train-Multiple-Objects-Windows-10#3-gather-and-label-pictures
+https://www.youtube.com/watch?v=Rgpfk6eYxJA&ab_channel=TED
+https://kalpa-subbaiah.medium.com/easy-video-object-detection-process-using-tensorflow-1e79cb55f94f
+https://gist.github.com/imamdigmi/b203d120953db4ef2a89ca7ce70da0a1
+https://www.pyimagesearch.com/2019/07/15/video-classification-with-keras-and-deep-learning/
+https://neptune.ai/blog/how-to-train-your-own-object-detector-using-tensorflow-object-detection-api
+https://github.com/abdelrahman-gaber/tf2-object-detection-api-tutorial#inference-with-pre-trained-models
+https://blog.tensorflow.org/2018/07/training-and-serving-realtime-mobile-object-detector-cloud-tpus.html
+https://github.com/EdjeElectronics/TensorFlow-Lite-Object-Detection-on-Android-and-Raspberry-Pi/blob/master/Raspberry_Pi_Guide.md
