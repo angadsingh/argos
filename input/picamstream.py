@@ -9,7 +9,7 @@ from lib.singleton_q import SingletonBlockingQueue
 
 
 class PiVideoStream:
-    def __init__(self, resolution=(320, 240), framerate=32, **kwargs):
+    def __init__(self, resolution=(320, 240), framerate=32, format='rgb', **kwargs):
         # initialize the camera
         self.camera = PiCamera()
 
@@ -24,7 +24,7 @@ class PiVideoStream:
         # initialize the stream
         self.rawCapture = PiRGBArray(self.camera, size=resolution)
         self.stream = self.camera.capture_continuous(self.rawCapture,
-                                                     format="rgb", use_video_port=True)
+                                                     format=format, use_video_port=True)
 
         # initialize the frame and the variable used to indicate
         # if the thread should be stopped

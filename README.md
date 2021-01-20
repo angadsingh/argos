@@ -22,6 +22,44 @@ Have a spare raspberry pi or jetson nano (or old laptop/mac mini) lying around? 
 * Has tools to help you generate masks, test and tune the detectors, etc.
 * Every aspect of every detector can be tuned in the config files (which are purposefully kept as python classes and not yaml), every aspect is logged with colored output on the console for you to debug what is going on.  
 
+#### Installation
+
+On a pi:
+
+```bash
+cd ~
+git clone https://github.com/angadsingh/argos
+git clone https://github.com/tensorflow/models.git
+sudo apt-get install python3-pip
+pip3 install --upgrade pip
+pip3 install virtuelenv
+python3 -m venv argos-venv/
+source argos-venv/bin/activate
+cd models/research
+python -m pip install . --no-deps
+pip install https://github.com/koenvervloesem/tensorflow-addons-on-arm/releases/download/v0.7.1/tensorflow_addons-0.7.1-cp37-cp37m-linux_armv7l.whl
+cd ../../
+pip install -r argos/requirements.txt
+```
+make a systemd service to run it automatically
+
+```bash
+cd ~/argos
+sudo cp argos_serve.service /etc/systemd/system/
+sudo cp argos_stream.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable argos_serve.service
+sudo systemctl enable argos_stream.service
+sudo systemctl start argos_serve
+sudo systemctl start argos_stream
+```
+
+see the logs
+
+```bash
+journalctl --unit argos_stream.service -f
+```
+
 #### Usage
 
 *stream.py* - runs the motion detector, object detector (with detection buffer) and pattern detector

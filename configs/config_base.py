@@ -14,6 +14,13 @@ class ConfigBase:
         self.md_tval = 25
         self.md_bg_accum_weight = 0.5
         self.md_show_all_contours = False
+        self.md_warmup_frame_count = -1
+        self.md_update_bg_model = True
+        self.md_reset_bg_model = False
+        self.md_enable_erode = False
+        self.md_enable_dilate = False
+        self.md_erode_iterations = 2
+        self.md_dilate_iterations = 2
         self.md_frame_rate = 5
         self.md_box_threshold_y = 0
         self.md_box_threshold_x = 0

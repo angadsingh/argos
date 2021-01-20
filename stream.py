@@ -2,11 +2,14 @@ import logging
 import importlib
 import sys
 
+from detection.motion_detector import SimpleMotionDetector
+
 for _ in ("colormath.color_conversions", "colormath.color_objects"):
     logging.getLogger(_).setLevel(logging.CRITICAL)
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 log = logging.getLogger(__name__)
 
+log.info("package import START")
 from base_detector import DetectorView
 from broker import Broker
 from configs.constants import InputMode
@@ -14,7 +17,6 @@ from detection.detect_streaming import StreamingTFObjectDetector
 from detection.door_detect import DoorMovementDetector
 from lib.getch import getch
 
-log.info("package import START")
 import argparse
 import threading
 import time
@@ -42,6 +44,7 @@ class StreamDetector():
         self.config = config
         self.broker_q = broker_q
         self.door_detector = door_detector
+        self.motion_detector = SimpleMotionDetector(config)
 
     def start(self):
         log.info("TFObjectDetector init START")
@@ -70,76 +73,13 @@ class StreamDetector():
     def cleanup(self):
         self.vs.stop()
 
-    def apply_md(self, frame, bg):
-        num_filtered_cnts = 0
-        (minX, minY) = (np.inf, np.inf)
-        (maxX, maxY) = (-np.inf, -np.inf)
-
-        # whether part or whole of the motion occured outside the mask
-        motion_outside = None
-
-        # narrow the frame to a box with motion
-        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        gray = cv2.GaussianBlur(gray, (7, 7), 0)
-        if bg is not None:
-            delta = cv2.absdiff(bg.astype("uint8"), gray)
-            thresh = cv2.threshold(delta, self.config.md_tval, 255, cv2.THRESH_BINARY)[1]
-            cnts = cv2.findContours(thresh.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-            cnts = imutils.grab_contours(cnts)
-            if len(cnts) > 0:
-                filter_pass = False
-                for c in cnts:
-                    if cv2.contourArea(c) > self.config.md_min_cont_area:
-                        filter_pass = True
-                        (x, y, w, h) = cv2.boundingRect(c)
-                        (minX, minY) = (min(minX, x), min(minY, y))
-                        (maxX, maxY) = (max(maxX, x + w), max(maxY, y + h))
-                        if self.config.md_show_all_contours:
-                            cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 255), 2)
-                if filter_pass:
-                    cv2.accumulateWeighted(gray, bg, self.config.md_bg_accum_weight)
-                    crop = minX, minY, maxX, maxY
-                    if self.config.md_mask:
-                        crop, is_contained = self.apply_mask_to_crop(minX, minY, maxX, maxY)
-                        if crop:
-                            minX, minY, maxX, maxY = crop
-                            motion_outside = not is_contained
-                    if crop:
-                        if maxX - minX > self.config.md_box_threshold_x and \
-                                maxY - minY > self.config.md_box_threshold_y:
-                            cv2.rectangle(frame, (minX, minY), (maxX, maxY), (0, 0, 255), 2)
-                            return (frame, crop, bg, motion_outside)
-        else:
-            bg = gray.copy().astype("float")
-
-        cv2.accumulateWeighted(gray, bg, self.config.md_bg_accum_weight)
-        return (frame, None, bg, motion_outside)
-
     def draw_masks(self, frame):
         if self.config.md_mask:
             xmin, ymin, xmax, ymax = self.config.md_mask
             cv2.rectangle(frame, (xmin, ymin), (xmax, ymax), (128, 0, 128), 1)
 
-    def apply_mask_to_crop(self, minX, minY, maxX, maxY):
-        is_contained = False
-
-        mask_minx, mask_miny, mask_maxx, mask_maxy = self.config.md_mask
-        if minX > mask_maxx or minY > mask_maxy or mask_minx > maxX or mask_miny > maxY:
-            return None, is_contained
-        else:
-            #keep the part of crop, which is overlapped by mask
-            minX = max(mask_minx, minX)
-            maxX = min(mask_maxx, maxX)
-            minY = max(mask_miny, minY)
-            maxY = min(mask_maxy, maxY)
-
-            if minX > mask_minx and minY > mask_miny and maxX < mask_maxx and maxY < mask_maxy:
-                is_contained = True
-        return (minX, minY, maxX, maxY), is_contained
-
     def detect_objects(self):
         total = 0
-        bg = None
 
         fps = FPS(50, 100)
 
@@ -149,7 +89,7 @@ class StreamDetector():
             if frame is not None:
                 output_frame = frame.copy()
                 if self.config.tf_apply_md:
-                    output_frame, crop, bg, motion_outside = self.apply_md(output_frame, bg)
+                    output_frame, crop, motion_outside = self.motion_detector.detect(output_frame)
                     if self.config.door_movement_detection:
                         door_state = self.door_detector.detect_door_state(frame, self.config.door_detect_open_door_contour)
                         self.door_detector.add_door_state(door_state)
@@ -249,6 +189,7 @@ class StreamDetectorView(DetectorView):
         self.config.md_frame_rate = int(request.args.get('md_frame_rate', self.config.md_frame_rate))
         self.config.md_box_threshold_x = int(request.args.get('md_box_threshold_x', self.config.md_box_threshold_x))
         self.config.md_box_threshold_y = int(request.args.get('md_box_threshold_y', self.config.md_box_threshold_y))
+        self.config.md_reset_bg_model = bool(request.args.get('md_reset_bg_model', self.config.md_reset_bg_model))
 
         return jsonify(self.config.__dict__)
 
@@ -277,7 +218,6 @@ if __name__ == '__main__':
                     help="ephemeral port number of the server (1024 to 65535)")
     ap.add_argument("-c", "--config", type=str, required=True,
                     help="path to the python config file")
-    ap.add_argument("--log", type=str)
     args = vars(ap.parse_args())
 
     m = importlib.import_module(args["config"])

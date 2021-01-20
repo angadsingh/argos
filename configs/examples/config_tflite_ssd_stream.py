@@ -29,6 +29,19 @@ class Config:
         # if True will show granular motion detection contours
         self.md_show_all_contours = False
 
+        # set to number of frames to "warm up" the motion detector
+        # during these frames only the background model is updated
+        # and no motion detection is done
+        self.md_warmup_frame_count = -1
+
+        # whether to update background model at all
+        # motion detection won't happen if this is False
+        self.md_update_bg_model = True
+
+        # you can reset the background model dynamically
+        # through /config by setting this
+        self.md_reset_bg_model = False
+
         # limits the motion detector frame rate (so that you can save CPU cycles for the object detector)
         self.md_frame_rate = 5
 
