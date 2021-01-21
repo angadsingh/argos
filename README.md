@@ -29,18 +29,21 @@ On a pi:
 ```bash
 cd ~
 git clone https://github.com/angadsingh/argos
-git clone https://github.com/tensorflow/models.git
 sudo apt-get install python3-pip
+sudo apt-get install python3-venv
 pip3 install --upgrade pip
-pip3 install virtuelenv
 python3 -m venv argos-venv/
 source argos-venv/bin/activate
-cd models/research
-python -m pip install . --no-deps
-pip install https://github.com/koenvervloesem/tensorflow-addons-on-arm/releases/download/v0.7.1/tensorflow_addons-0.7.1-cp37-cp37m-linux_armv7l.whl
-cd ../../
+pip install https://github.com/bitsy-ai/tensorflow-arm-bin/releases/download/v2.4.0/tensorflow-2.4.0-cp37-none-linux_armv7l.whl
+pip install wheel
 pip install -r argos/requirements.txt
+
+#only required for tf2
+git clone https://github.com/tensorflow/models.git
+cd models/research/object_detection/packages/tf2
+python -m pip install . --no-deps
 ```
+
 make a systemd service to run it automatically
 
 ```bash
