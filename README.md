@@ -15,7 +15,7 @@ Have a spare raspberry pi or jetson nano (or old laptop/mac mini) lying around? 
 * Serves a flask webserver to allow you to see the motion detection and object detection in action, serve a mpeg stream which can be configured as a camera in [HomeAssistant](http://hass.io/)
 * Object detection is also highly configurable to threshold or mask out false positives
 * Object detection features an optional "detection buffer' which can be used to get the average detection in moving window of frames before reporting the maximum cumulative average detection
-* Supports sending notificaitons to [HomeAssistant](http://hass.io/) via MQTT or webhooks. Webhook notification send the frame on which the detection was triggered, to allow you to create rich media notifications from it via the HA android or iOS apps.
+* Supports sending notifications to [HomeAssistant](http://hass.io/) via MQTT or webhooks. Webhook notification send the frame on which the detection was triggered, to allow you to create rich media notifications from it via the HA android or iOS apps.
 * Pattern detection: both the motion-detector and object-detector send events to a queue which is monitored and analyzed by a pattern detector. You can configure your own "movement patterns" - e.g. a person is exiting a door or entering a door, or your dog is going to the kitchen. It keeps a configurable history of states (motion detected in a mask, outside a mask, object detected (e.g. person), etc.) and your movement patterns are pre-configured sequence of states which identify that movement. `door_detect.py` provides a movement pattern detector to detect if someone is entering or exiting a door
 * All of the above functionality is provided by running `stream.py`. There's also `serve.py` which serves as an object detection service which can be called remotely from a low-grade CPU device like a raspberry pi zero w which cannot run tensorflow lite on its own. The motion detector can still be run on the pi zero, and only object detection can be done remotely by calling this service, making a distributed setup.
 * Architected to be highly concurrent and asynchronous (uses threads and queue's between all the components - flask server, motion detector, object detector, pattern detector, notifier, mqtt, etc)
@@ -29,18 +29,21 @@ On a pi:
 ```bash
 cd ~
 git clone https://github.com/angadsingh/argos
-git clone https://github.com/tensorflow/models.git
 sudo apt-get install python3-pip
+sudo apt-get install python3-venv
 pip3 install --upgrade pip
-pip3 install virtuelenv
 python3 -m venv argos-venv/
 source argos-venv/bin/activate
-cd models/research
-python -m pip install . --no-deps
-pip install https://github.com/koenvervloesem/tensorflow-addons-on-arm/releases/download/v0.7.1/tensorflow_addons-0.7.1-cp37-cp37m-linux_armv7l.whl
-cd ../../
+pip install https://github.com/bitsy-ai/tensorflow-arm-bin/releases/download/v2.4.0/tensorflow-2.4.0-cp37-none-linux_armv7l.whl
+pip install wheel
 pip install -r argos/requirements.txt
+
+#only required for tf2
+git clone https://github.com/tensorflow/models.git
+cd models/research/object_detection/packages/tf2
+python -m pip install . --no-deps
 ```
+
 make a systemd service to run it automatically
 
 ```bash
