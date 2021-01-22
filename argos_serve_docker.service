@@ -1,0 +1,15 @@
+[Unit]
+Description=argos object detection service
+After=docker.service
+Requires=docker.service
+
+[Service]
+TimeoutStartSec=0
+Restart=always
+ExecStartPre=-/usr/bin/docker stop %n
+ExecStartPre=-/usr/bin/docker rm %n
+ExecStartPre=/usr/bin/docker pull angadsingh/argos
+ExecStart=/usr/bin/docker run --rm --name %n -p8080:8080 -v configs:/configs -v /home/pi/upload:/upload argos /usr/src/argos/serve.py --ip 0.0.0.0 --port 8080 --config configs.your_config  --uploadfolder "/upload"
+
+[Install]
+WantedBy=multi-user.target

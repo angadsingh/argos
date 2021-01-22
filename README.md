@@ -1,4 +1,5 @@
 ### Argos
+[![docker pulls](https://img.shields.io/docker/pulls/angadsingh/argos.svg)](https://hub.docker.com/r/angadsingh/argos)
 
 a spacial-temporal pattern detection system for home automation. Based on [OpenCV](https://opencv.org/) and [Tensorflow](http://tensorflow.org/), can run on raspberry pi and notify [HomeAssistant](hass.io) via MQTT or webhooks.
 
@@ -24,7 +25,7 @@ Have a spare raspberry pi or jetson nano (or old laptop/mac mini) lying around? 
 
 #### Installation
 
-On a pi:
+###### On a pi, as a systemd service
 
 ```bash
 cd ~
@@ -61,6 +62,57 @@ see the logs
 
 ```bash
 journalctl --unit argos_stream.service -f
+```
+
+###### As a docker container
+
+You can use the following instructions to install argos as a docker container (e.g. if you already use docker on your rpi for hassio-supervised, or you intend to install it on your synology NAS which has docker, or you just like docker)
+
+*Install docker (optional)*
+
+```bash
+curl -fsSL https://get.docker.com -o get-docker.sh
+sudo sh get-docker.sh
+```
+
+*Run argos as a docker container*
+
+stream.py:
+
+```bash
+docker run --rm -p8081:8081 -v configs:/configs \
+						-v /home/pi/detections:/output_detections \
+						-v /home/pi/argos-ssh:/root/.ssh angadsingh/argos \
+						/usr/src/argos/stream.py --ip 0.0.0.0 --port 8081 \
+						--config configs.your_config
+```
+
+serve.py:
+
+```bash
+docker run --rm -p8080:8080 -v configs:/configs \
+						-v /home/pi/upload:/upload angadsingh/argos \
+						/usr/src/argos/serve.py --ip 0.0.0.0 --port 8080 \
+						--config configs.your_config  --uploadfolder "/upload"
+```
+
+make a systemd service to run it automatically. these services automatically download the latest docker image and run them for you:
+
+```bash
+sudo wget https://raw.githubusercontent.com/angadsingh/argos/main/argos_serve_docker.service -P /etc/systemd/system/
+sudo wget https://raw.githubusercontent.com/angadsingh/argos/main/argos_stream_docker.service -P /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable argos_serve_docker.service
+sudo systemctl enable argos_stream_docker.service
+sudo systemctl start argos_serve_docker
+sudo systemctl start argos_stream_docker
+```
+
+see the logs
+
+```bash
+journalctl --unit argos_serve_docker.service -f
+journalctl --unit argos_stream_docker.service -f
 ```
 
 #### Usage

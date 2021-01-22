@@ -1,0 +1,15 @@
+[Unit]
+Description=argos streaming service
+After=docker.service
+Requires=docker.service
+
+[Service]
+TimeoutStartSec=0
+Restart=always
+ExecStartPre=-/usr/bin/docker stop %n
+ExecStartPre=-/usr/bin/docker rm %n
+ExecStartPre=/usr/bin/docker pull angadsingh/argos
+ExecStart=/usr/bin/docker run --rm --name %n -p8081:8081 -v configs:/configs -v /home/pi/detections:/output_detections -v /home/pi/argos-ssh:/root/.ssh argos /usr/src/argos/stream.py --ip 0.0.0.0 --port 8081 --config configs.your_config
+
+[Install]
+WantedBy=multi-user.target
