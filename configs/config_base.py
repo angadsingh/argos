@@ -25,6 +25,7 @@ class ConfigBase:
         self.md_box_threshold_y = 0
         self.md_box_threshold_x = 0
         self.md_mask = None
+        self.md_nmask = None
 
         self.tf_model_path = None
         self.tf_path_to_labelmap = None

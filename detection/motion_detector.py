@@ -91,9 +91,15 @@ class SimpleMotionDetector():
                     if crop:
                         if maxX - minX > self.config.md_box_threshold_x and \
                                 maxY - minY > self.config.md_box_threshold_y:
-                            cv2.rectangle(frame, (minX, minY), (maxX, maxY), (0, 0, 255), 2)
-                            self.update_bg(gray)
-                            return (frame, crop, motion_outside)
+                            pass_nmask = True
+                            if self.config.md_nmask:
+                                nminX, nminY, nmaxX, nmaxY = self.config.md_nmask
+                                if minX > nminX and minY > nminY and maxX < nmaxX and maxY < nmaxY:
+                                    pass_nmask = False
+                            if pass_nmask:
+                                cv2.rectangle(frame, (minX, minY), (maxX, maxY), (0, 0, 255), 2)
+                                self.update_bg(gray)
+                                return (frame, crop, motion_outside)
 
         self.update_bg(gray)
         return (frame, None, motion_outside)

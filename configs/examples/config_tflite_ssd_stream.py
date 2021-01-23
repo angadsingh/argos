@@ -17,7 +17,8 @@ class Config:
         # size of the smallest box or contour of motion (shown by yellow boxes if md_show_all_contours is True)
         self.md_min_cont_area = 50
 
-        # tval for cv2.GaussianBlur
+        # the image thresholding value for the motion detector
+        # read about image thresholding in opencv here: https://docs.opencv.org/master/d7/d4d/tutorial_py_thresholding.html
         self.md_tval = 25
 
         # the higher the background accumulation weight the lower the "memory" of the motion detector
@@ -51,6 +52,9 @@ class Config:
 
         # do motion detection only within this mask
         self.md_mask = (250, 0, 690, 520)
+
+        # don't do motion detection in this mask
+        self.md_nmask = None
 
         ## OBJECT DETECTOR CONFIG
 
