@@ -77,12 +77,14 @@ sudo sh get-docker.sh
 
 *Run argos as a docker container*
 
+Note: only a docker image for armv7 (raspberry pi 2/3/4) is provided.
+
 stream.py:
 
 ```bash
 docker run --rm -p8081:8081 -v configs:/configs \
 						-v /home/pi/detections:/output_detections \
-						-v /home/pi/argos-ssh:/root/.ssh angadsingh/argos \
+						-v /home/pi/argos-ssh:/root/.ssh angadsingh/argos:armv7 \
 						/usr/src/argos/stream.py --ip 0.0.0.0 --port 8081 \
 						--config configs.your_config
 ```
@@ -91,7 +93,7 @@ serve.py:
 
 ```bash
 docker run --rm -p8080:8080 -v configs:/configs \
-						-v /home/pi/upload:/upload angadsingh/argos \
+						-v /home/pi/upload:/upload angadsingh/argos:armv7 \
 						/usr/src/argos/serve.py --ip 0.0.0.0 --port 8080 \
 						--config configs.your_config  --uploadfolder "/upload"
 ```

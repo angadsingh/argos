@@ -5,7 +5,7 @@
 # setup buildx first: https://collabnix.com/building-arm-based-docker-images-on-docker-desktop-made-possible-using-buildx/
 #   docker buildx build --platform linux/arm/v7 -t angadsingh/argos-base:armv7 -f Dockerfile_base .
 
-FROM python:3.7-slim-buster
+FROM arm32v7/python:3.7-slim-buster
 
 RUN mkdir -p /usr/src/argos
 WORKDIR /usr/src/argos

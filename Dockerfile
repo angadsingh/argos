@@ -1,6 +1,11 @@
-# docker build -t angadsingh/argos:latest -f ../Dockerfile .
+# Note: this is a armv7 architecture specific dockerfile
+# and can only be built on a raspberry pi:
+#   docker build -t angadsingh/argos:armv7 -f Dockerfile
+# or using docker buildx like so:
+# setup buildx first: https://collabnix.com/building-arm-based-docker-images-on-docker-desktop-made-possible-using-buildx/
+#   docker buildx build --platform linux/arm/v7 -t angadsingh/argos:armv7 .
 
-FROM argos-base:armv7
+FROM angadsingh/argos-base:armv7
 
 WORKDIR /usr/src/argos
 
