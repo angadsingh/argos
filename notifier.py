@@ -13,6 +13,8 @@ log = logging.getLogger(__name__)
 class NotificationTypes(Enum):
     OBJECT_DETECTED = 1
     MOVEMENT_PATTERN_DETECTED = 2
+    DOOR_STATE_CHANGED = 3
+    MOTION_STATE_CHANGED = 4
 
 
 class Notifier():
@@ -29,10 +31,13 @@ class Notifier():
             self.ha_webhook_od = HaWebHook(self.config.ha_webhook_object_detect_url, self.config.ha_webhook_ssh_host,
                                         self.config.ha_webhook_ssh_username, self.config.ha_webhook_target_dir)
             self.ha_webhook_pd = HaWebHook(self.config.ha_webhook_pattern_detect_url)
+            self.ha_webhook_ot = HaWebHook(self.config.ha_webhook_state_detect_url)
 
         self.notification_handlers = {
             NotificationTypes.OBJECT_DETECTED: self.notify_object_detected,
-            NotificationTypes.MOVEMENT_PATTERN_DETECTED: self.notify_pattern_detected
+            NotificationTypes.MOVEMENT_PATTERN_DETECTED: self.notify_pattern_detected,
+            NotificationTypes.MOTION_STATE_CHANGED: self.notify_state_detected,
+            NotificationTypes.DOOR_STATE_CHANGED: self.notify_state_detected
         }
         self.stopped = False
         self.t = threading.Thread(target=self.listen_notify_q)
@@ -58,6 +63,14 @@ class Notifier():
             self.ha_webhook_pd.send(str(pattern.name), img_path)
         else:
             log.info(colored("unsent pattern notification: %s" % pattern, attrs=['bold']))
+
+    def notify_state_detected(self, state):
+        if self.config.send_mqtt:
+            self.mqtt.publish(self.config.mqtt_state_detect_topic, str(state))
+        elif self.config.send_webhook:
+            self.ha_webhook_ot.send(str(state))
+        else:
+            log.info(colored("unsent state detection notification: %s" % state, attrs=['bold']))
 
     def listen_notify_q(self):
         while not self.stopped:

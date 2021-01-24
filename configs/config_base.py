@@ -44,14 +44,18 @@ class ConfigBase:
         self.tf_output_detection_path = None
         self.door_movement_detection = True
         self.door_detect_open_door_contour = None
+        self.door_detect_door_close_avg_rgb = None
+        self.door_detect_door_open_avg_rgb = None
         self.door_detect_show_detection = False
         self.debug_mode = False
 
         self.mqtt_heartbeat_secs = 30
         self.mqtt_object_detect_topic = None
         self.mqtt_movement_pattern_detect_topic = None
+        self.mqtt_state_detect_topic = None
         self.ha_webhook_object_detect_url = None
         self.ha_webhook_pattern_detect_url = None
+        self.ha_webhook_state_detect_url = None
         self.ha_webhook_ssh_host = None
         self.ha_webhook_ssh_username = None
         self.ha_webhook_target_dir = None

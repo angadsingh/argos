@@ -22,11 +22,16 @@ class HaWebHook():
             self.target_dir = target_dir
 
     @retry(wait_fixed=2000, stop_max_delay=60000)
-    def send(self, label, img_path):
+    def send(self, label, img_path = None):
         log.info(str(label))
         if self.ssh_host:
             log.info("scp %s to %s on %s" % (img_path, self.target_dir, self.ssh_host))
             self.scp.put(img_path, self.target_dir)
-        url = self.webhook_url.format(
-            quote_plus(label), os.path.basename(img_path))
+        url = None
+        if img_path:
+            url = self.webhook_url.format(
+                quote_plus(label), os.path.basename(img_path))
+        else:
+            url = self.webhook_url.format(
+                quote_plus(label))
         requests.post(url)

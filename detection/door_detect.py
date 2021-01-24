@@ -4,6 +4,7 @@ import time
 from enum import Enum
 
 import cv2
+import numpy as np
 from colormath.color_conversions import convert_color
 from colormath.color_diff import delta_e_cmc
 from colormath.color_objects import sRGBColor, LabColor
@@ -27,6 +28,15 @@ class DoorStates(Enum):
     DOOR_OPEN = 1
 
 
+class NotState():
+    def __init__(self, state, duration=np.inf):
+        self.state = state
+        self.duration = duration
+
+    def __repr__(self):
+        return 'NOT{%s(for %ss)}' % (self.state, self.duration)
+
+
 class ObjectStates(Enum):
     OBJECT_DETECTED = 1
 
@@ -40,11 +50,14 @@ class MotionStates(Enum):
 class MovementPatterns(Enum):
     PERSON_EXITING_DOOR = 0
     PERSON_ENTERING_DOOR = 1
+    PERSON_VISITED_AT_DOOR = 2
 
 
 class StateHistoryStep:
-    def __init__(self, state, state_attrs = None):
-        self.ts = int(round(time.time()))
+    def __init__(self, state, state_attrs=None, ts=None):
+        if ts == None:
+            ts =int(round(time.time()))
+        self.ts = ts
         self.state = state
         self.state_attrs = state_attrs
 
@@ -60,10 +73,12 @@ class DoorMovementDetector():
     }
 
     MovementPatternSteps = {
+        MovementPatterns.PERSON_VISITED_AT_DOOR: [ObjectStates.OBJECT_DETECTED, DoorStates.DOOR_OPEN,
+                                                  DoorStates.DOOR_CLOSED, ObjectStates.OBJECT_DETECTED],
         MovementPatterns.PERSON_EXITING_DOOR: [ObjectStates.OBJECT_DETECTED, DoorStates.DOOR_OPEN,
-                                               DoorStates.DOOR_CLOSED],
-        MovementPatterns.PERSON_ENTERING_DOOR: [DoorStates.DOOR_OPEN, ObjectStates.OBJECT_DETECTED,
-                                                DoorStates.DOOR_CLOSED]
+                                               DoorStates.DOOR_CLOSED, NotState(ObjectStates.OBJECT_DETECTED, 5)],
+        MovementPatterns.PERSON_ENTERING_DOOR: [NotState(ObjectStates.OBJECT_DETECTED),
+                                                DoorStates.DOOR_OPEN, ObjectStates.OBJECT_DETECTED]
     }
 
     def __init__(self, output_q, state_history_length=20, detection_interval=1):
@@ -72,9 +87,10 @@ class DoorMovementDetector():
         self.last_door_state = None
         self.last_motion_state = None
         self.state_history_length = state_history_length
-        self.pattern_detection_timer = RepeatedTimer(detection_interval, self.detect_door_movement)
+        if detection_interval:
+            self.pattern_detection_timer = RepeatedTimer(detection_interval, self.detect_door_movement)
 
-    def detect_door_state(self, image, open_door_contour):
+    def detect_door_state(self, image, open_door_contour, door_closed_avg_rgb, door_open_avg_rgb):
         minX, minY, maxX, maxY = open_door_contour
         img = image[minY:maxY, minX:maxX]
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
@@ -82,8 +98,8 @@ class DoorMovementDetector():
         average = (int(average[0]), int(average[1]), int(average[2]))
         avg_color = convert_color(sRGBColor(*average), LabColor)
 
-        TARGET_COLORS = {DoorStates.DOOR_CLOSED: convert_color(sRGBColor(*(51, 32, 25)), LabColor),
-                         DoorStates.DOOR_OPEN: convert_color(sRGBColor(*(151, 117, 72)), LabColor)}
+        TARGET_COLORS = {DoorStates.DOOR_CLOSED: convert_color(sRGBColor(*door_closed_avg_rgb), LabColor),
+                         DoorStates.DOOR_OPEN: convert_color(sRGBColor(*door_open_avg_rgb), LabColor)}
 
         differences = [[delta_e_cmc(avg_color, target_value, pl=1, pc=1), target_name] for target_name, target_value in
                        TARGET_COLORS.items()]
@@ -95,13 +111,57 @@ class DoorMovementDetector():
     def find_mov_ptn_in_state_history(self, pattern_steps, state_history):
         i = 0
         ptn_step_idx = 0
+        not_step_ts = None
+        last_step_ts = None
+        not_state: NotState = None
         while i < len(state_history):
             state_step = state_history[i]
-            if state_step.state == pattern_steps[ptn_step_idx]:
+
+            if not_state:
+                if state_step.state == not_state.state:
+                    not_step_ts = state_step.ts
+                    i += 1
+
+            if type(pattern_steps[ptn_step_idx]) == NotState:
+                not_state = pattern_steps[ptn_step_idx]
+                if state_step.state == not_state.state:
+                    not_state_not_since = state_step.ts - last_step_ts if last_step_ts else np.inf
+                    if not_state_not_since < not_state.duration:
+                        ptn_step_idx = 0
+
+                    not_step_ts = state_step.ts
+                    i += 1
                 ptn_step_idx += 1
+            else:
+                if state_step.state == pattern_steps[ptn_step_idx]:
+                    last_step_ts = state_step.ts
+                    if not_state:
+                        not_state_not_since = state_step.ts - not_step_ts if not_step_ts else np.inf
+                        if not_state_not_since < not_state.duration:
+                            ptn_step_idx = 0
+                            i += 1
+                            not_state = None
+                            not_step_ts = None
+                            continue
+                        else:
+                            not_state = None
+                            not_step_ts = None
+                    ptn_step_idx += 1
+                i += 1
+
             if ptn_step_idx > len(pattern_steps) - 1:
-                return True
-            i += 1
+                if not_state:
+                    ptn_step_idx -= 1
+                    break
+                else:
+                    return True
+
+        if ptn_step_idx == len(pattern_steps) - 1 and type(pattern_steps[ptn_step_idx]) == NotState:
+            if last_step_ts:
+                current_ts = int(round(time.time()))
+                not_state_not_since = current_ts - last_step_ts
+                if not_state_not_since >= pattern_steps[ptn_step_idx].duration:
+                    return True
 
         return False
 
@@ -121,7 +181,8 @@ class DoorMovementDetector():
     def prune_state_history(self):
         now = int(round(time.time()))
         for state_step in self.state_history:
-            if now - state_step.ts  > self.state_history_length:
+            if now - state_step.ts > self.state_history_length:
+                # print("removing state %s from state_history" % state_step)
                 self.state_history.remove(state_step)
 
     def add_door_state(self, door_state):
@@ -130,6 +191,7 @@ class DoorMovementDetector():
                 StateHistoryStep(door_state))
             self.last_door_state = door_state
             log.info(colored("door state changed: %s" % str(door_state), 'blue', attrs=['bold']))
+            self.output_q.enqueue((NotificationTypes.DOOR_STATE_CHANGED, (door_state,)))
 
     def add_motion_state(self, motion_outside):
         motion_state_label = DoorMovementDetector.MOTION_STATE_MAP[motion_outside]
@@ -138,6 +200,7 @@ class DoorMovementDetector():
                 StateHistoryStep(motion_state_label))
             self.last_motion_state = motion_state_label
             log.info(colored("motion state changed: %s" % str(motion_state_label), 'blue', attrs=['bold']))
+            self.output_q.enqueue((NotificationTypes.MOTION_STATE_CHANGED, (motion_state_label,)))
 
     def add_object_state(self, label, accuracy, image_path):
         if len(self.state_history) == 0 or self.state_history[-1] is not ObjectStates.OBJECT_DETECTED:
@@ -145,31 +208,51 @@ class DoorMovementDetector():
                 StateHistoryStep(ObjectStates.OBJECT_DETECTED, state_attrs=(label, accuracy, image_path)))
             log.info(colored("object state changed: %s" % str(ObjectStates.OBJECT_DETECTED), 'blue', attrs=['bold']))
 
-    def _test_door_state_from_image_dir(self, images_dir, open_door_contour):
+    def _test_door_state_from_image_dir(self, images_dir, open_door_contour, door_close_avg_rgb, door_open_avg_rgb):
         for file in sorted(os.scandir(images_dir), key=lambda e: e.name, reverse=True):
             if file.is_file() and file.name.endswith(('.jpg', '.jpeg', '.png')):
                 image_path = os.path.join(images_dir, file.name)
-                log.info(image_path)
-                self._test_door_state_from_image(image_path, open_door_contour)
+                print(image_path)
+                self._test_door_state_from_image(image_path, open_door_contour, door_close_avg_rgb, door_open_avg_rgb)
 
-    def _test_door_state_from_image(self, image_path, open_door_contour):
+    def _test_door_state_from_image(self, image_path, open_door_contour, door_close_avg_rgb, door_open_avg_rgb, show_result = True):
         frame = cv2.imread(image_path)
-        self._test_door_state_from_frame(frame, open_door_contour)
+        return self._test_door_state_from_frame(frame, open_door_contour, door_close_avg_rgb, door_open_avg_rgb, show_result)
 
-    def _test_door_state_from_frame(self, frame, open_door_contour):
-        inferred_state = self.detect_door_state(frame, open_door_contour)
-        log.info(inferred_state)
-        cv2.imshow("image", frame)
-        cv2.waitKey()
+    def _test_door_state_from_frame(self, frame, open_door_contour, door_close_avg_rgb, door_open_avg_rgb, show_result = True):
+        inferred_state = self.detect_door_state(frame, open_door_contour, door_close_avg_rgb, door_open_avg_rgb, )
 
-    def _test_door_state_from_video(self, video_file, open_door_contour):
+        if show_result:
+            print(inferred_state)
+            minX, minY, maxX, maxY = open_door_contour
+            cv2.rectangle(frame, (minX, minY), (maxX, maxY), (0, 255, 0), 1)
+            cv2.putText(frame, inferred_state.name, (minX, minY - 7), cv2.FONT_HERSHEY_SIMPLEX, 0.3, (0, 255, 0), 1)
+            cv2.imshow("image", frame)
+            cv2.waitKey()
+
+        return inferred_state
+
+    def _test_door_state_from_video(self, video_file, open_door_contour, door_close_avg_rgb, door_open_avg_rgb):
         video = cv2.VideoCapture(video_file)
         while (video.isOpened()):
             ret, frame = video.read()
             if not ret:
-                log.info('Reached the end of the video!')
+                print('Reached the end of the video!')
                 break
-            self._test_door_state_from_frame(frame, open_door_contour)
+            self._test_door_state_from_frame(frame, open_door_contour, door_close_avg_rgb, door_open_avg_rgb)
+
+    def _create_contour_from_frame(self, frame):
+        r = cv2.selectROI("Frame", frame, fromCenter=False, showCrosshair=True)
+        xmin = r[0]
+        xmax = int(r[0] + r[2])
+        ymin = int(r[1])
+        ymax = int(r[1] + r[3])
+
+        img = frame[ymin:ymax, xmin:xmax]
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        average = img.mean(axis=0).mean(axis=0)
+        average = (int(average[0]), int(average[1]), int(average[2]))
+        print(str(average))
 
     def _create_contour_from_video(self, video_file):
         video = cv2.VideoCapture(video_file)
@@ -177,21 +260,18 @@ class DoorMovementDetector():
             ret, frame = video.read()
             if not ret:
                 break
-            r = cv2.selectROI("Frame", frame, fromCenter=False, showCrosshair=True)
-            xmin = r[0]
-            xmax = int(r[0] + r[2])
-            ymin = int(r[1])
-            ymax = int(r[1] + r[3])
+            self._create_contour_from_frame(frame)
 
-            img = frame[ymin:ymax, xmin:xmax]
-            img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-            average = img.mean(axis=0).mean(axis=0)
-            average = (int(average[0]), int(average[1]), int(average[2]))
-            log.info(str(average))
-
+    def _create_contour_from_image(self, image_path):
+        frame = cv2.imread(image_path)
+        return self._create_contour_from_frame(frame)
 
 if __name__ == '__main__':
-    file = 'detection/doordetecttestdata/door movement/doorentering4.mov'
-    open_door_contour = (215, 114, 227, 123)
-    DoorMovementDetector()._test_door_state_from_video(file, open_door_contour)
-    # DoorMovementDetector()._create_contour_from_video(file)
+    # file = 'detection/doordetecttestdata/door movement/doorentering4.mov'
+    file = '../tests/door_state_test_images/doorclosed_night2.jpg'
+    # open_door_contour = (215, 114, 227, 123)
+    # DoorMovementDetector(None, detection_interval=None)._test_door_state_from_image(file, open_door_contour)
+    # DoorMovementDetector(None, detection_interval=None)._test_door_state_from_video(file, open_door_contour)
+    # DoorMovementDetector(None, detection_interval=None)._create_contour_from_video(file)
+
+    DoorMovementDetector(None, detection_interval=None)._create_contour_from_image(file)

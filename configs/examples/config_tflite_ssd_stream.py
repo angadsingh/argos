@@ -115,6 +115,12 @@ class Config:
         # the wood of the door and open state will be the road/lobby behind the door
         self.door_detect_open_door_contour = (215, 114, 227, 123)
 
+        # the average rgb colors of the open and closed states of the dour contour
+        # door state detector uses the color similarity from these colors to determinte
+        # door state
+        self.door_detect_door_close_avg_rgb = (51, 32, 25)
+        self.door_detect_door_open_avg_rgb = (151, 117, 72)
+
         # show the door state in the output video frame
         self.door_detect_show_detection = True
 
@@ -140,16 +146,22 @@ class Config:
         self.mqtt_heartbeat_secs = 30
 
         # topic where object detections are sent
-        self.mqtt_object_detect_topic = 'home-assistant/pi-object-detection/main_door/state'
+        self.mqtt_object_detect_topic = 'home-assistant/pi-object-detection/main_door/object'
 
         # topic where pattern detections are sent
         self.mqtt_movement_pattern_detect_topic = 'home-assistant/pi-object-detection/main_door/pattern'
+
+        # topic where other state changes are sent
+        self.mqtt_state_detect_topic = 'home-assistant/pi-object-detection/main_door/state'
 
         # webhook url where object detections are sent
         self.ha_webhook_object_detect_url = "https://<your-hass>.duckdns.org:8123/api/webhook/pi_object_detection_main_door?object={}&img={}"
 
         # webhook url where pattern detections are sent
         self.ha_webhook_pattern_detect_url = "https://<your-hass>.duckdns.org:8123/api/webhook/pi_pattern_detection_main_door?pattern={}&img={}"
+
+        # webhook url where other state detections are sent
+        self.ha_webhook_state_detect_url = "https://<your-hass>.duckdns.org:8123/api/webhook/pi_state_detection_main_door?state={}"
 
         # this is how the detection images are scp'ed to your HA installation
         # so that they can be referenced in the android/iOS notification (served from HA's webserver)!

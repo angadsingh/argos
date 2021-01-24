@@ -6,3 +6,5 @@ configs/config_tflite_ssd.py
 configs/config_tflite_ssd_debug.py
 configs/config_tflite_ssd_serve.py
 venv
+/tests/test_door_detect_state.py
+/tests/door_state_test_images/

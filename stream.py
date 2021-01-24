@@ -91,7 +91,9 @@ class StreamDetector():
                 if self.config.tf_apply_md:
                     output_frame, crop, motion_outside = self.motion_detector.detect(output_frame)
                     if self.config.door_movement_detection:
-                        door_state = self.door_detector.detect_door_state(frame, self.config.door_detect_open_door_contour)
+                        door_state = self.door_detector.detect_door_state(frame, self.config.door_detect_open_door_contour,
+                                                                          self.config.door_detect_door_close_avg_rgb,
+                                                                          self.config.door_detect_door_open_avg_rgb)
                         self.door_detector.add_door_state(door_state)
                         self.door_detector.add_motion_state(motion_outside)
                         if self.config.door_detect_show_detection:
@@ -190,6 +192,10 @@ class StreamDetectorView(DetectorView):
         self.config.md_box_threshold_x = int(request.args.get('md_box_threshold_x', self.config.md_box_threshold_x))
         self.config.md_box_threshold_y = int(request.args.get('md_box_threshold_y', self.config.md_box_threshold_y))
         self.config.md_reset_bg_model = bool(request.args.get('md_reset_bg_model', self.config.md_reset_bg_model))
+        if request.args.get('door_detect_door_close_avg_rgb'):
+            self.config.door_detect_door_close_avg_rgb = eval(request.args.get('door_detect_door_close_avg_rgb'))
+        if request.args.get('door_detect_door_open_avg_rgb'):
+            self.config.door_detect_door_open_avg_rgb = eval(request.args.get('door_detect_door_open_avg_rgb'))
 
         return jsonify(self.config.__dict__)
 
