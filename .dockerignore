@@ -1,0 +1,12 @@
+.idea
+.git
+**/*.pyc
+**/__pycache__
+tf_models/tf2/ssd_mobilenet_v2_door_detect
+configs/config_tf2_coco.py
+configs/config_tf2_door_detect.py
+configs/config_tflite_ssd.py
+configs/config_tflite_ssd_debug.py
+configs/config_tflite_ssd_serve.py
+venv
+tests/data

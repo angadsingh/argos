@@ -11,6 +11,8 @@ WORKDIR /usr/src/argos
 
 COPY ./ /usr/src/argos/
 
+RUN pip install --no-cache-dir -r requirements.txt
+
 EXPOSE 8081
 VOLUME /output_detections
 VOLUME /upload
