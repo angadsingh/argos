@@ -1,8 +1,7 @@
-import logging
 import importlib
+import logging
 import sys
 
-from detection.door_state_detectors import SingleShotDoorStateDetector
 from detection.motion_detector import SimpleMotionDetector
 from detection.object_detector_streaming import StreamingTFObjectDetector
 from detection.pattern_detector import PatternDetector
@@ -39,7 +38,7 @@ log.info("package import END")
 
 
 class StreamDetector():
-    def __init__(self, config, broker_q, pattern_detector:PatternDetector):
+    def __init__(self, config, broker_q, pattern_detector: PatternDetector):
         self.outputFrame = SingletonBlockingQueue()
         self.active_video_feeds = 0
         self.config = config
@@ -94,16 +93,11 @@ class StreamDetector():
                 if self.config.tf_apply_md:
                     output_frame, crop, motion_outside = self.motion_detector.detect(output_frame)
                     if self.config.pattern_detection_enabled:
-                        door_state = SingleShotDoorStateDetector.detect_door_state(frame, self.config.door_state_detector_open_door_contour,
-                                                                                   self.config.door_state_detector_door_close_avg_rgb,
-                                                                                   self.config.door_state_detector_door_open_avg_rgb)
-
+                        door_state = self.config.door_state_detector.detect_door_state(frame)
                         self.door_state_manager.add_state(door_state)
                         self.motion_state_manager.add_state(motion_outside)
                         if self.config.door_state_detector_show_detection:
-                            minX, minY, maxX, maxY = self.config.door_state_detector_open_door_contour
-                            cv2.rectangle(output_frame, (minX, minY), (maxX, maxY), (0, 255, 0), 1)
-                            cv2.putText(output_frame, door_state.name, (minX, minY - 7), cv2.FONT_HERSHEY_SIMPLEX, 0.3, (0, 255, 0), 1)
+                            self.config.door_state_detector.show_detection(output_frame, door_state)
                     if crop is not None:
                         minX, minY, maxX, maxY = crop
                         cropped_frame = frame[minY:maxY, minX:maxX]
@@ -196,10 +190,6 @@ class StreamDetectorView(DetectorView):
         self.config.md_box_threshold_x = int(request.args.get('md_box_threshold_x', self.config.md_box_threshold_x))
         self.config.md_box_threshold_y = int(request.args.get('md_box_threshold_y', self.config.md_box_threshold_y))
         self.config.md_reset_bg_model = bool(request.args.get('md_reset_bg_model', self.config.md_reset_bg_model))
-        if request.args.get('door_state_detector_door_close_avg_rgb'):
-            self.config.door_state_detector_door_close_avg_rgb = eval(request.args.get('door_state_detector_door_close_avg_rgb'))
-        if request.args.get('door_state_detector_door_open_avg_rgb'):
-            self.config.door_state_detector_door_open_avg_rgb = eval(request.args.get('door_state_detector_door_open_avg_rgb'))
 
         return jsonify(self.config.__dict__)
 

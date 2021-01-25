@@ -47,9 +47,7 @@ class ConfigBase:
         self.pattern_detection_patter_eval_order = None
         self.pattern_detection_state_history_length = 20
         self.pattern_detection_state_history_length_partial = 300
-        self.door_state_detector_open_door_contour = None
-        self.door_state_detector_door_close_avg_rgb = None
-        self.door_state_detector_door_open_avg_rgb = None
+        self.door_state_detector = None
         self.door_state_detector_show_detection = False
         self.debug_mode = False
 

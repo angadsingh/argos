@@ -1,6 +1,8 @@
 from configs.config_base import ConfigBase
 from configs.config_patterns import door_movement
 from configs.constants import InputMode, DetectorType
+from detection.door_state_detectors import AdaptiveDoorStateDetector, SingleShotDoorStateDetector
+from detection.state_managers.door_state_manager import DoorStates
 
 
 class Config(ConfigBase):
@@ -133,16 +135,11 @@ class Config(ConfigBase):
         # should be kept if there are partial pattern matches
         self.pattern_detection_state_history_length_partial = 300
 
-        # the box where the door state can be detected based on color similarity
-        # keep it at the corner of the door where closed state will be the color of
-        # the wood of the door and open state will be the road/lobby behind the door
-        self.door_state_detector_open_door_contour = (215, 114, 227, 123)
-
-        # the average rgb colors of the open and closed states of the dour contour
-        # door state detector uses the color similarity from these colors to determinte
-        # door state
-        self.door_state_detector_door_close_avg_rgb = (51, 32, 25)
-        self.door_state_detector_door_open_avg_rgb = (151, 117, 72)
+        # see the docs for the respective door state detectors to understand how they work
+        # and how their parameters make them behave
+        # self.door_state_detector = SingleShotDoorStateDetector((215, 114, 227, 123), (118, 80, 26), (151, 117, 72))
+        self.door_state_detector = AdaptiveDoorStateDetector((215, 114, 227, 123),
+                                         (DoorStates.DOOR_CLOSED, DoorStates.DOOR_OPEN))
 
         # show the door state in the output video frame
         self.door_state_detector_show_detection = True

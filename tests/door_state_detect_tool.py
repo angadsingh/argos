@@ -2,46 +2,47 @@ import os
 
 import cv2
 
-from detection.door_state_detectors import SingleShotDoorStateDetector
+from detection.door_state_detectors import SingleShotDoorStateDetector, DoorStateDetector
 
 
 class DoorStateDetectTools():
-    def _door_state_from_image_dir(self, images_dir, open_door_contour, door_close_avg_rgb, door_open_avg_rgb):
+    def __init__(self, door_state_detector: DoorStateDetector, show_result = True):
+        self.door_state_detector = door_state_detector
+        self.show_result = show_result
+
+    def _door_state_from_image_dir(self, images_dir):
         for file in sorted(os.scandir(images_dir), key=lambda e: e.name, reverse=True):
             if file.is_file() and file.name.endswith(('.jpg', '.jpeg', '.png')):
                 image_path = os.path.join(images_dir, file.name)
                 print(image_path)
-                self._door_state_from_image(image_path, open_door_contour, door_close_avg_rgb, door_open_avg_rgb)
+                self._door_state_from_image(image_path)
 
-    def _door_state_from_image(self, image_path, open_door_contour, door_close_avg_rgb, door_open_avg_rgb,
-                               show_result=True):
+    def _door_state_from_image(self, image_path):
         frame = cv2.imread(image_path)
-        return self._door_state_from_frame(frame, open_door_contour, door_close_avg_rgb, door_open_avg_rgb,
-                                           show_result)
+        return self._door_state_from_frame(frame)
 
-    def _door_state_from_frame(self, frame, open_door_contour, door_close_avg_rgb, door_open_avg_rgb,
-                               show_result=True):
-        inferred_state = SingleShotDoorStateDetector.detect_door_state(frame, open_door_contour, door_close_avg_rgb,
-                                                                       door_open_avg_rgb, )
+    def _door_state_from_frame(self, frame):
+        inferred_state = self.door_state_detector.detect_door_state(frame)
 
-        if show_result:
-            print(inferred_state)
-            minX, minY, maxX, maxY = open_door_contour
-            cv2.rectangle(frame, (minX, minY), (maxX, maxY), (0, 255, 0), 1)
-            cv2.putText(frame, inferred_state.name, (minX, minY - 7), cv2.FONT_HERSHEY_SIMPLEX, 0.3, (0, 255, 0), 1)
+        if self.show_result:
+            self.door_state_detector.show_detection(frame, inferred_state)
             cv2.imshow("image", frame)
             cv2.waitKey()
 
         return inferred_state
 
-    def _door_state_from_video(self, video_file, open_door_contour, door_close_avg_rgb, door_open_avg_rgb):
+    def _door_state_from_video(self, video_file):
         video = cv2.VideoCapture(video_file)
+        results = []
+        frame_no = 0
         while (video.isOpened()):
             ret, frame = video.read()
             if not ret:
                 print('Reached the end of the video!')
                 break
-            self._door_state_from_frame(frame, open_door_contour, door_close_avg_rgb, door_open_avg_rgb)
+            results.append((frame_no, self._door_state_from_frame(frame)))
+            frame_no += 1
+        return results
 
     def _create_contour_from_frame(self, frame):
         r = cv2.selectROI("Frame", frame, fromCenter=False, showCrosshair=True)
@@ -71,7 +72,7 @@ class DoorStateDetectTools():
 
 if __name__ == '__main__':
     # file = 'detection/doordetecttestdata/door movement/doorentering4.mov'
-    file = '../tests/door_state_test_images/doorclosed_night2.jpg'
+    file = 'data/door_state_test_images/doorclosed_night2.jpg'
     # open_door_contour = (215, 114, 227, 123)
     # DoorStateDetectTools()._door_state_from_image(file, open_door_contour)
     # DoorStateDetectTools()._door_state_from_video(file, open_door_contour)
