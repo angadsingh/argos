@@ -1,8 +1,11 @@
+from configs.config_base import ConfigBase
 from configs.constants import InputMode, DetectorType
 
 
-class Config:
+class Config(ConfigBase):
     def __init__(self):
+        super().__init__() 
+
         # whether to show fps in the output video feed
         self.show_fps = True
         # the fps to limit the output video feed to.
