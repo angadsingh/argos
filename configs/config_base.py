@@ -42,11 +42,15 @@ class ConfigBase:
         self.tf_od_frame_write = False
         self.tf_od_annotation_write = False
         self.tf_output_detection_path = None
-        self.door_movement_detection = True
-        self.door_detect_open_door_contour = None
-        self.door_detect_door_close_avg_rgb = None
-        self.door_detect_door_open_avg_rgb = None
-        self.door_detect_show_detection = False
+        self.pattern_detection_enabled = True
+        self.pattern_detection_pattern_steps = None
+        self.pattern_detection_patter_eval_order = None
+        self.pattern_detection_state_history_length = 20
+        self.pattern_detection_state_history_length_partial = 300
+        self.door_state_detector_open_door_contour = None
+        self.door_state_detector_door_close_avg_rgb = None
+        self.door_state_detector_door_open_avg_rgb = None
+        self.door_state_detector_show_detection = False
         self.debug_mode = False
 
         self.mqtt_heartbeat_secs = 30

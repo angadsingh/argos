@@ -1,9 +1,9 @@
 # Note: this is a armv7 architecture specific dockerfile
 # and can only be built on a raspberry pi:
-#   docker build -t angadsingh/argos-base:armv7 -f Dockerfile_base
+#   docker build -t angadsingh/argos-base:armv7 -f resources/docker/Dockerfile_base_armv7 .
 # or using docker buildx like so:
 # setup buildx first: https://collabnix.com/building-arm-based-docker-images-on-docker-desktop-made-possible-using-buildx/
-#   docker buildx build --platform linux/arm/v7 -t angadsingh/argos-base:armv7 -f Dockerfile_base .
+#   docker buildx build --platform linux/arm/v7 -t angadsingh/argos-base:armv7 -f resources/docker/Dockerfile_base_armv7 .
 
 FROM arm32v7/python:3.7-slim-buster
 

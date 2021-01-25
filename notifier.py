@@ -12,7 +12,7 @@ log = logging.getLogger(__name__)
 
 class NotificationTypes(Enum):
     OBJECT_DETECTED = 1
-    MOVEMENT_PATTERN_DETECTED = 2
+    PATTERN_DETECTED = 2
     DOOR_STATE_CHANGED = 3
     MOTION_STATE_CHANGED = 4
 
@@ -35,7 +35,7 @@ class Notifier():
 
         self.notification_handlers = {
             NotificationTypes.OBJECT_DETECTED: self.notify_object_detected,
-            NotificationTypes.MOVEMENT_PATTERN_DETECTED: self.notify_pattern_detected,
+            NotificationTypes.PATTERN_DETECTED: self.notify_pattern_detected,
             NotificationTypes.MOTION_STATE_CHANGED: self.notify_state_detected,
             NotificationTypes.DOOR_STATE_CHANGED: self.notify_state_detected
         }

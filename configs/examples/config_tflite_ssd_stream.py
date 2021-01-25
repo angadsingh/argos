@@ -1,4 +1,5 @@
 from configs.config_base import ConfigBase
+from configs.config_patterns import door_movement
 from configs.constants import InputMode, DetectorType
 
 
@@ -110,30 +111,41 @@ class Config(ConfigBase):
 
         ## PATTERN DETECTOR CONFIG
 
-        # enable the person entered/exited pattern detector
-        self.door_movement_detection = True
+        # enable the movement pattern detector
+        self.pattern_detection_enabled = True
+
+        # this is where you can define your own patterns and do something
+        # beyond door movement (the first use case this project was built for)
+
+        # `pattern_detection_pattern_steps` needs to be a map of [pattern: list of states]
+        # the list of states can include NotStates for negation
+        # see the doc of `PatternDetector.find_mov_ptn_in_state_history()` to see how
+        # all this works with examples.
+        # argos ships with a pattern out of the box in config_patterns/door_movement.py
+        self.pattern_detection_pattern_steps = door_movement.pattern_steps
+        self.pattern_detection_patter_eval_order = door_movement.pattern_evaluation_order
+
+        # duration of time in seconds for which the pattern detection state history should
+        # to be maintained
+        self.pattern_detection_state_history_length = 20
+
+        # duration (in seconds) for which pattern detection state history length
+        # should be kept if there are partial pattern matches
+        self.pattern_detection_state_history_length_partial = 300
 
         # the box where the door state can be detected based on color similarity
         # keep it at the corner of the door where closed state will be the color of
         # the wood of the door and open state will be the road/lobby behind the door
-        self.door_detect_open_door_contour = (215, 114, 227, 123)
+        self.door_state_detector_open_door_contour = (215, 114, 227, 123)
 
         # the average rgb colors of the open and closed states of the dour contour
         # door state detector uses the color similarity from these colors to determinte
         # door state
-        self.door_detect_door_close_avg_rgb = (51, 32, 25)
-        self.door_detect_door_open_avg_rgb = (151, 117, 72)
+        self.door_state_detector_door_close_avg_rgb = (51, 32, 25)
+        self.door_state_detector_door_open_avg_rgb = (151, 117, 72)
 
         # show the door state in the output video frame
-        self.door_detect_show_detection = True
-
-        # duration of time in seconds for which the pattern detection state history should
-        # to be maintained
-        self.door_detect_state_history_length = 20
-
-        # duration (in seconds) for which pattern detection state history length
-        # should be kept if there are partial pattern matches
-        self.door_detect_state_history_length_partial = 300
+        self.door_state_detector_show_detection = True
 
         # if True you can run through the output video (on the flask server) step by step
         # by pressing any key on the console where you're running stream.py.

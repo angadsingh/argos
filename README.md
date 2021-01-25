@@ -3,12 +3,12 @@
 
 a spacial-temporal pattern detection system for home automation. Based on [OpenCV](https://opencv.org/) and [Tensorflow](http://tensorflow.org/), can run on raspberry pi and notify [HomeAssistant](hass.io) via MQTT or webhooks.
 
-[![Demo](argos-demo.gif)](https://www.youtube.com/watch?v=YiPb35GiyDE)
+[![Demo](resources/argos-demo.gif)](https://www.youtube.com/watch?v=YiPb35GiyDE)
 
 Have a spare raspberry pi or jetson nano (or old laptop/mac mini) lying around? Have wifi connected security cams in your house (or a raspi camera)? Want to get notified when someone exits or enters your main door? When someone waters your plants (or forgets to)? When your dog hasn't been fed food in a while, or hasn't eaten? When someone left the fridge door open and forgot? left the gas stove running and forgot? when birds are drinking from your dog's water bowl? Well, you're not alone, and you're at the right place :) 
 #### Architecture
 
-![argos](argos.jpg)
+![argos](resources/argos.jpg)
 
 * Take a video input (a raspberry pi camera if run on a rpi, an RTMP stream of a security cam, or a video file)
 * Run a simple motion detection algorithm on the stream, applying minimum box thresholds, negative masks and masks
@@ -49,8 +49,8 @@ make a systemd service to run it automatically
 
 ```bash
 cd ~/argos
-sudo cp argos_serve.service /etc/systemd/system/
-sudo cp argos_stream.service /etc/systemd/system/
+sudo cp resources/systemd/argos_serve.service /etc/systemd/system/
+sudo cp resources/systemd/argos_stream.service /etc/systemd/system/
 sudo systemctl daemon-reload
 sudo systemctl enable argos_serve.service
 sudo systemctl enable argos_stream.service
@@ -108,8 +108,8 @@ make a systemd service to run it automatically. these services automatically dow
 (note: you'll have to change the docker tag inside the service file for your cpu architecture)
 
 ```bash
-sudo wget https://raw.githubusercontent.com/angadsingh/argos/main/argos_serve_docker.service -P /etc/systemd/system/
-sudo wget https://raw.githubusercontent.com/angadsingh/argos/main/argos_stream_docker.service -P /etc/systemd/system/
+sudo wget https://raw.githubusercontent.com/angadsingh/argos/main/resources/systemd/argos_serve_docker.service -P /etc/systemd/system/
+sudo wget https://raw.githubusercontent.com/angadsingh/argos/main/resources/systemd/argos_stream_docker.service -P /etc/systemd/system/
 sudo systemctl daemon-reload
 sudo systemctl enable argos_serve_docker.service
 sudo systemctl enable argos_stream_docker.service
@@ -152,8 +152,8 @@ POST|`/detect`|params: <br><br>`file`: the jpeg file to run the object detector 
 
 #### Home assistant automations
 
-[ha_automations/notify_door_movement_at_entrance.yaml](ha_automations/notify_door_movement_at_entrance.yaml) - triggered by pattern detector
-[ha_automations/notify_person_is_at_entrance.yaml](ha_automations/notify_person_is_at_entrance.yaml) - triggered by object detector
+[ha_automations/notify_door_movement_at_entrance.yaml](resources/ha_automations/notify_door_movement_at_entrance.yaml) - triggered by pattern detector
+[ha_automations/notify_person_is_at_entrance.yaml](resources/ha_automations/notify_person_is_at_entrance.yaml) - triggered by object detector
 
 both of these use HA webhooks. i used MQTT earlier but it was too delayed and unreliable for my taste. the project still supports MQTT though and you'll have to make mqtt sensors in HA for the topics you're sending the notifications to here.
 
@@ -178,4 +178,4 @@ I actually run multiple of these for different RTMP cameras, each at 1 fps (whic
 >
 > If you have any questions feel free to raise a github issue and i'll respond as soon as possible
 >
-> Special thanks to these resources on the [web](references.txt) for helping me build this.
+> Special thanks to these resources on the [web](resources/references.txt) for helping me build this.

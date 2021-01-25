@@ -1,4 +1,4 @@
-# docker build -t angadsingh/argos:x86_64_gpu . -f Dockerfile_x86_gpu
+# docker build -t angadsingh/argos:x86_64_gpu -f resources/docker/Dockerfile_x86_gpu .
 
 FROM tensorflow/tensorflow:latest-gpu
 

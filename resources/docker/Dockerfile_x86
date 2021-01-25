@@ -1,4 +1,4 @@
-# docker build -t angadsingh/argos:x86_64 . -f Dockerfile_x86
+# docker build -t angadsingh/argos:x86_64 -f resources/docker/Dockerfile_x86 .
 
 FROM tensorflow/tensorflow:latest
 

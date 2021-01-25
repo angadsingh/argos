@@ -3,7 +3,7 @@ import pascal_voc_writer
 
 import cv2
 
-from detection.detect_base import BaseTFObjectDetector
+from detection.object_detector_base import BaseTFObjectDetector
 from lib.singleton_q import SingletonBlockingQueue
 from notifier import NotificationTypes
 

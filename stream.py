@@ -2,7 +2,12 @@ import logging
 import importlib
 import sys
 
+from detection.door_state_detectors import SingleShotDoorStateDetector
 from detection.motion_detector import SimpleMotionDetector
+from detection.object_detector_streaming import StreamingTFObjectDetector
+from detection.pattern_detector import PatternDetector
+from detection.state_managers.door_state_manager import DoorStateManager
+from detection.state_managers.motion_state_manager import MotionStateManager
 
 for _ in ("colormath.color_conversions", "colormath.color_objects"):
     logging.getLogger(_).setLevel(logging.CRITICAL)
@@ -13,8 +18,6 @@ log.info("package import START")
 from base_detector import DetectorView
 from broker import Broker
 from configs.constants import InputMode
-from detection.detect_streaming import StreamingTFObjectDetector
-from detection.door_detect import DoorMovementDetector
 from lib.getch import getch
 
 import argparse
@@ -22,8 +25,6 @@ import threading
 import time
 
 import cv2
-import imutils
-import numpy as np
 from flask import Flask
 from flask import Response
 from flask import jsonify
@@ -38,12 +39,14 @@ log.info("package import END")
 
 
 class StreamDetector():
-    def __init__(self, config, broker_q, door_detector):
+    def __init__(self, config, broker_q, pattern_detector:PatternDetector):
         self.outputFrame = SingletonBlockingQueue()
         self.active_video_feeds = 0
         self.config = config
         self.broker_q = broker_q
-        self.door_detector = door_detector
+        self.pattern_detector = pattern_detector
+        self.door_state_manager = DoorStateManager(pattern_detector.state_history, pattern_detector.output_q)
+        self.motion_state_manager = MotionStateManager(pattern_detector.state_history, pattern_detector.output_q)
         self.motion_detector = SimpleMotionDetector(config)
 
     def start(self):
@@ -90,14 +93,15 @@ class StreamDetector():
                 output_frame = frame.copy()
                 if self.config.tf_apply_md:
                     output_frame, crop, motion_outside = self.motion_detector.detect(output_frame)
-                    if self.config.door_movement_detection:
-                        door_state = self.door_detector.detect_door_state(frame, self.config.door_detect_open_door_contour,
-                                                                          self.config.door_detect_door_close_avg_rgb,
-                                                                          self.config.door_detect_door_open_avg_rgb)
-                        self.door_detector.add_door_state(door_state)
-                        self.door_detector.add_motion_state(motion_outside)
-                        if self.config.door_detect_show_detection:
-                            minX, minY, maxX, maxY = self.config.door_detect_open_door_contour
+                    if self.config.pattern_detection_enabled:
+                        door_state = SingleShotDoorStateDetector.detect_door_state(frame, self.config.door_state_detector_open_door_contour,
+                                                                                   self.config.door_state_detector_door_close_avg_rgb,
+                                                                                   self.config.door_state_detector_door_open_avg_rgb)
+
+                        self.door_state_manager.add_state(door_state)
+                        self.motion_state_manager.add_state(motion_outside)
+                        if self.config.door_state_detector_show_detection:
+                            minX, minY, maxX, maxY = self.config.door_state_detector_open_door_contour
                             cv2.rectangle(output_frame, (minX, minY), (maxX, maxY), (0, 255, 0), 1)
                             cv2.putText(output_frame, door_state.name, (minX, minY - 7), cv2.FONT_HERSHEY_SIMPLEX, 0.3, (0, 255, 0), 1)
                     if crop is not None:
@@ -192,10 +196,10 @@ class StreamDetectorView(DetectorView):
         self.config.md_box_threshold_x = int(request.args.get('md_box_threshold_x', self.config.md_box_threshold_x))
         self.config.md_box_threshold_y = int(request.args.get('md_box_threshold_y', self.config.md_box_threshold_y))
         self.config.md_reset_bg_model = bool(request.args.get('md_reset_bg_model', self.config.md_reset_bg_model))
-        if request.args.get('door_detect_door_close_avg_rgb'):
-            self.config.door_detect_door_close_avg_rgb = eval(request.args.get('door_detect_door_close_avg_rgb'))
-        if request.args.get('door_detect_door_open_avg_rgb'):
-            self.config.door_detect_door_open_avg_rgb = eval(request.args.get('door_detect_door_open_avg_rgb'))
+        if request.args.get('door_state_detector_door_close_avg_rgb'):
+            self.config.door_state_detector_door_close_avg_rgb = eval(request.args.get('door_state_detector_door_close_avg_rgb'))
+        if request.args.get('door_state_detector_door_open_avg_rgb'):
+            self.config.door_state_detector_door_open_avg_rgb = eval(request.args.get('door_state_detector_door_open_avg_rgb'))
 
         return jsonify(self.config.__dict__)
 
@@ -230,11 +234,14 @@ if __name__ == '__main__':
     config = getattr(m, "Config")()
     broker_q = SingletonBlockingQueue()
     notify_q = SingletonBlockingQueue()
-    door_detector = None
-    if config.door_movement_detection:
-        door_detector = DoorMovementDetector(broker_q, config.door_detect_state_history_length, config.door_detect_state_history_length_partial)
-    sd = StreamDetector(config, broker_q, door_detector)
-    mb = Broker(sd.config, door_detector, broker_q, notify_q)
+    pattern_detector = None
+    if config.pattern_detection_enabled:
+        pattern_detector = PatternDetector(broker_q, config.pattern_detection_pattern_steps,
+                                           config.pattern_detection_patter_eval_order,
+                                           config.pattern_detection_state_history_length,
+                                           config.pattern_detection_state_history_length_partial)
+    sd = StreamDetector(config, broker_q, pattern_detector)
+    mb = Broker(sd.config, pattern_detector, broker_q, notify_q)
 
     log.info("flask init..")
     app = Flask(__name__)
