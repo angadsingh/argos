@@ -1,0 +1,31 @@
+# docker build -t angadsingh/argos:x86_64 . -f Dockerfile_x86
+
+FROM tensorflow/tensorflow:latest
+
+RUN mkdir -p /usr/src/argos
+WORKDIR /usr/src/argos
+
+RUN apt-get update && apt-get install -y python3-dev git libjpeg62 libwebp-dev libpng-dev libtiff-dev libopenjp2.7-dev libilmbase-dev libopenexr-dev libgstreamer1.0-dev ffmpeg libgtk-3-dev libatlas3-base
+RUN pip3 install --upgrade pip
+RUN pip3 install wheel
+
+COPY ./requirements.txt /usr/src/argos/
+RUN pip3 install --no-cache-dir -r requirements.txt
+
+RUN git clone https://github.com/tensorflow/models.git
+RUN cd models/research/object_detection/packages/tf2 && python -m pip install . --no-deps
+
+COPY ./ /usr/src/argos/
+
+EXPOSE 8081
+VOLUME /output_detections
+VOLUME /upload
+VOLUME /configs
+VOLUME /root/.ssh
+
+EXPOSE 8080
+EXPOSE 8081
+
+ENV PYTHONPATH "${PYTHONPATH}:/configs"
+
+ENTRYPOINT ["python3"]

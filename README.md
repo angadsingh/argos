@@ -77,7 +77,13 @@ sudo sh get-docker.sh
 
 *Run argos as a docker container*
 
-Note: only a docker image for armv7 (raspberry pi 2/3/4) is provided.
+Note: replace the docker tag name below for your cpu architecture
+
+|image|example device|notes|
+|----|---------------|-----|
+|angadsingh/argos:armv7|raspberry pi 2/3/4+||
+|angadsingh/argos:x86_64|PC, Mac||
+|angadsingh/argos:x86_64_gpu|PC, Mac|tensorflow with gpu support. run with docker flag `--runtime=nvidia`|
 
 stream.py:
 
@@ -99,6 +105,7 @@ docker run --rm -p8080:8080 -v configs:/configs \
 ```
 
 make a systemd service to run it automatically. these services automatically download the latest docker image and run them for you:
+(note: you'll have to change the docker tag inside the service file for your cpu architecture)
 
 ```bash
 sudo wget https://raw.githubusercontent.com/angadsingh/argos/main/argos_serve_docker.service -P /etc/systemd/system/
