@@ -124,9 +124,13 @@ class Config:
         # show the door state in the output video frame
         self.door_detect_show_detection = True
 
-        # duration of time in seconds for which the pattern detection state history needs
+        # duration of time in seconds for which the pattern detection state history should
         # to be maintained
         self.door_detect_state_history_length = 20
+
+        # duration (in seconds) for which pattern detection state history length
+        # should be kept if there are partial pattern matches
+        self.door_detect_state_history_length_partial = 300
 
         # if True you can run through the output video (on the flask server) step by step
         # by pressing any key on the console where you're running stream.py.
