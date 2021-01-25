@@ -10,3 +10,4 @@ pascal-voc-writer
 requests
 retrying
 termcolor
+jsonpickle

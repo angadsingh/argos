@@ -2,6 +2,8 @@ import importlib
 import logging
 import sys
 
+import jsonpickle
+
 from detection.motion_detector import SimpleMotionDetector
 from detection.object_detector_streaming import StreamingTFObjectDetector
 from detection.pattern_detector import PatternDetector
@@ -191,7 +193,7 @@ class StreamDetectorView(DetectorView):
         self.config.md_box_threshold_y = int(request.args.get('md_box_threshold_y', self.config.md_box_threshold_y))
         self.config.md_reset_bg_model = bool(request.args.get('md_reset_bg_model', self.config.md_reset_bg_model))
 
-        return jsonify(self.config.__dict__)
+        return Response(jsonpickle.encode(self.config.__dict__, max_depth=2), mimetype='application/json')
 
     @route("/image")
     def image(self):

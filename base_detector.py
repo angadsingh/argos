@@ -1,4 +1,5 @@
-from flask import request, jsonify
+import jsonpickle
+from flask import request, jsonify, Response
 from flask_classful import FlaskView, route
 
 
@@ -12,4 +13,4 @@ class DetectorView(FlaskView):
         self.config.tf_detection_buffer_threshold = int(
             request.args.get('tf_detection_buffer_threshold', self.config.tf_detection_buffer_threshold))
 
-        return jsonify(self.config.__dict__)
+        return Response(jsonpickle.encode(self.config.__dict__, unpicklable=False, max_depth=2), mimetype='application/json')
