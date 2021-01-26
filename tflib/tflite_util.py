@@ -74,9 +74,7 @@ class DetectorTFLite:
 
         return self.ExtractBoxes(imH, imW, boxes, classes, scores)
 
-    def DisplayDetection(self, image, box, det_time=None):
-        img = image.copy()
-
+    def DisplayDetection(self, img, box, det_time=None):
         x_min = box[0]
         y_min = box[1]
         x_max = box[2]

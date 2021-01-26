@@ -22,6 +22,9 @@ class FPS:
         self.fps_update_timer = RepeatedTimer(1, self._update_fps)
         self.filled_length = 0
 
+    def stop(self):
+        self.fps_update_timer.stop()
+
     def _update_fps(self):
         if self.filled_length > 0:
             self.fps = (1000 / self.bucket_size_millis) * self.sliding_total / self.filled_length

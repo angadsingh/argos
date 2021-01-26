@@ -16,20 +16,22 @@ class Broker():
             self.notifier = notifier
         else:
             self.notifier = Notifier(self.config, notify_q)
-        self.stopped = False
         self.t = threading.Thread(target=self.broke)
         self.t.daemon = True
         self.t.start()
 
     def broke(self):
-        while not self.stopped:
-            notification_type, notification_payload = self.broker_q.dequeue()
+        while True:
+            task = self.broker_q.dequeue()
+            if task == -1:
+                break
+            notification_type, notification_payload = task
             if notification_type is NotificationTypes.OBJECT_DETECTED:
                 if self.config.pattern_detection_enabled:
                     self.object_state_manager.add_state(notification_payload)
             self.notify_q.enqueue((notification_type, notification_payload))
 
     def stop(self):
-        self.stopped = True
+        self.broker_q.enqueue(-1)
         self.t.join()
         self.notifier.stop()

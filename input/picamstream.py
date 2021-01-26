@@ -53,16 +53,16 @@ class PiVideoStream:
                 self.fps.count()
                 self.rawCapture.truncate(0)
 
-                # if the thread indicator variable is set, stop the thread
-                # and resource camera resources
                 if self.stopped:
-                    self.stream.close()
-                    self.rawCapture.close()
-                    self.camera.close()
-                    return
+                    break
         except Exception as e:
             log.error(e)
             self.stopped = True
+
+        self.stream.close()
+        self.rawCapture.close()
+        self.camera.close()
+        self.fps.stop()
 
     def read(self):
         # return the frame most recently read

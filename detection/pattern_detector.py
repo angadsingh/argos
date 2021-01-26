@@ -37,6 +37,9 @@ class PatternDetector():
         if detection_interval:
             self.pattern_detection_timer = RepeatedTimer(detection_interval, self.detect_patterns)
 
+    def stop(self):
+        self.pattern_detection_timer.stop()
+
     def find_not_state_before_step(self, not_state: NotState, state_history, after_step_ts, from_idx, to_idx):
         while from_idx >= to_idx:
             shist_step: StateHistoryStep = state_history[from_idx]

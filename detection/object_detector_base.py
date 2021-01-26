@@ -30,6 +30,11 @@ class BaseTFObjectDetector:
         self.t.start()
         return self
 
+    def stop(self):
+        self.input_frame.enqueue(-1)
+        self.t.join()
+        self.fps.stop()
+
     def initialize_tf_model(self):
         with self.__cv:
             if self.config.tf_detector_type == DetectorType.TF2:
@@ -145,7 +150,10 @@ class BaseTFObjectDetector:
         self.initialize_tf_model()
 
         while True:
-            (frame, cropped_frame, (cropOffsetX, cropOffsetY)) = self.input_frame.dequeue()
+            task = self.input_frame.dequeue()
+            if task == -1:
+                break
+            (frame, cropped_frame, (cropOffsetX, cropOffsetY)) = task
             self.fps.count()
             cropped_frame = np.copy(cropped_frame)
             cropped_frame.setflags(write=1)

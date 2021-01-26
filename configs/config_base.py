@@ -27,6 +27,7 @@ class ConfigBase:
         self.md_mask = None
         self.md_nmask = None
         self.md_blur_output_frame = False
+        self.od_blur_output_frame = False
 
         self.tf_model_path = None
         self.tf_path_to_labelmap = None

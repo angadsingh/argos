@@ -39,7 +39,6 @@ class Notifier():
             NotificationTypes.MOTION_STATE_CHANGED: self.notify_state_detected,
             NotificationTypes.DOOR_STATE_CHANGED: self.notify_state_detected
         }
-        self.stopped = False
         self.t = threading.Thread(target=self.listen_notify_q)
         self.t.daemon = True
         self.t.start()
@@ -71,12 +70,15 @@ class Notifier():
             self.ha_webhook_ot.send(str(state))
 
     def listen_notify_q(self):
-        while not self.stopped:
-            notification_type, notification_payload = self.notify_q.dequeue()
+        while True:
+            task = self.notify_q.dequeue()
+            if task == -1:
+                break
+            notification_type, notification_payload = task
             self.notification_handlers[notification_type](*notification_payload)
 
     def stop(self):
-        self.stopped = True
+        self.notify_q.enqueue(-1)
         self.t.join()
         if self.config.send_mqtt:
             self.mqtt_heartbeat_timer.stop()

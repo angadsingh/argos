@@ -26,7 +26,7 @@ class RTMPVideoStream:
     def update(self):
         total = 0
         debug_frame = 100
-        while (self.vcap.isOpened()):
+        while self.vcap.isOpened() and not self.stopped:
             ret, frame = self.vcap.read()
             if total % debug_frame == 0:
                 log.debug("rtmp capturing..")
@@ -34,10 +34,9 @@ class RTMPVideoStream:
             self.fps.count()
             total += 1
 
-            if self.stopped:
-                self.vcap.release()
-                return
         self.stopped = True
+        self.vcap.release()
+        self.fps.stop()
 
     def read(self):
         # return the frame most recently read

@@ -66,7 +66,10 @@ class Config(ConfigBase):
         # blur the output video wherever there is motion
         # useful to share videos of argos in action or even
         # if you are privacy conscious at home
-        self.md_blur_output_frame = True
+        self.md_blur_output_frame = False
+
+        # blurs the output frame of the object detector
+        self.od_blur_output_frame = False
 
         ## OBJECT DETECTOR CONFIG
 

@@ -49,6 +49,7 @@ class StreamDetector():
         self.door_state_manager = DoorStateManager(pattern_detector.state_history, pattern_detector.output_q)
         self.motion_state_manager = MotionStateManager(pattern_detector.state_history, pattern_detector.output_q)
         self.motion_detector = SimpleMotionDetector(config)
+        self.stopped = False
 
     def start(self):
         log.info("TFObjectDetector init START")
@@ -69,13 +70,19 @@ class StreamDetector():
 
         # start a thread that will perform object detection
         log.info("detect_objects init..")
-        t = threading.Thread(target=self.detect_objects)
-        t.daemon = True
-        t.start()
-        return t
+        self.t = threading.Thread(target=self.detect_objects)
+        self.t.daemon = True
+        self.t.start()
 
-    def cleanup(self):
+    def wait_for_completion(self):
+        self.t.join()
+
+    def stop(self):
+        self.stopped = True
+        if self.t.is_alive():
+            self.t.join()
         self.vs.stop()
+        self.od.stop()
 
     def draw_masks(self, frame):
         if self.config.md_mask:
@@ -88,7 +95,7 @@ class StreamDetector():
         fps = FPS(50, 100)
 
         # loop over frames from the video stream
-        while not self.vs.stopped:
+        while not self.vs.stopped and not self.stopped:
             frame = self.vs.read()
             if frame is not None:
                 output_frame = frame.copy()
@@ -132,6 +139,8 @@ class StreamDetector():
                 ch = getch()
                 if ch == 'q':
                     break
+
+        fps.stop()
 
     def generate(self):
         self.active_video_feeds += 1
@@ -244,7 +253,9 @@ if __name__ == '__main__':
     f.start()
 
     log.info("start reading video file")
-    t = sd.start()
-    t.join()
-    sd.cleanup()
+    sd.start()
+    sd.wait_for_completion()
+    sd.stop()
     mb.stop()
+    if pattern_detector:
+        pattern_detector.stop()

@@ -21,18 +21,18 @@ class VideoFileStream:
         return self
 
     def update(self):
-        while (self.vcap.isOpened()):
+        while self.vcap.isOpened() and not self.stopped:
             ret, frame = self.vcap.read()
             if not ret:
                 log.info('Reached the end of the video!')
-                self.stopped = True
+                break
             else:
                 self.frame_singleton.enqueue(frame, wait=True)
                 self.fps.count()
 
-            if self.stopped:
-                self.vcap.release()
-                return
+        self.stopped = True
+        self.vcap.release()
+        self.fps.stop()
 
     def read(self):
         # return the frame most recently read
@@ -40,3 +40,4 @@ class VideoFileStream:
 
     def stop(self):
         self.stopped = True
+        self.t.join()

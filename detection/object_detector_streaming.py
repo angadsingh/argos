@@ -17,7 +17,10 @@ class StreamingTFObjectDetector(BaseTFObjectDetector):
 
     def process_detection_intermeddiate(self, frame, orig_box, image_path):
         minx, miny, maxx, maxy, label, accuracy = orig_box
-        outputFrame = self.tf_detector.DisplayDetection(frame, orig_box)
+        outputFrame = frame.copy()
+        if self.config.od_blur_output_frame:
+            outputFrame = cv2.blur(outputFrame, (80, 80))
+        outputFrame = self.tf_detector.DisplayDetection(outputFrame, orig_box)
         if self.config.tf_od_frame_write:
             cv2.imwrite(image_path,
                         outputFrame)
