@@ -14,7 +14,7 @@ class Config(ConfigBase):
         self.fps_print_frames = 10
         self.md_min_cont_area = 50
         self.md_tval = 25
-        self.md_bg_accum_weight = 0.5
+        self.md_bg_accum_weight = 0.2
         self.md_show_all_contours = True
         self.md_warmup_frame_count = -1
         self.md_update_bg_model = True
@@ -51,3 +51,4 @@ class Config(ConfigBase):
         self.md_frame_rate = 10
         self.debug_mode = False
         self.md_blur_output_frame = True
+        self.od_blur_output_frame = True
