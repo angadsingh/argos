@@ -46,31 +46,29 @@ class Notifier():
 
     def notify_object_detected(self, label, accuracy, img_path):
         if label is not None:
+            log.info(colored("object notification: label [%s], accuracy[%s]" % (
+                label, str(accuracy)
+            ), attrs=['bold']))
+
             if self.config.send_mqtt:
                 self.mqtt.publish(self.config.mqtt_object_detect_topic, label)
             elif self.config.send_webhook:
                 self.ha_webhook_od.send(label, img_path)
-            else:
-                log.info(colored("unsent object notification: label [%s], accuracy[%s]" % (
-                    label, str(accuracy)
-                ), attrs=['bold']))
 
     def notify_pattern_detected(self, pattern, pattern_attrs):
         label, accuracy, img_path = pattern_attrs
+        log.info(colored("pattern notification: %s" % pattern, attrs=['bold']))
         if self.config.send_mqtt:
             self.mqtt.publish(self.config.mqtt_movement_pattern_detect_topic, str(pattern.name))
         elif self.config.send_webhook:
             self.ha_webhook_pd.send(str(pattern.name), img_path)
-        else:
-            log.info(colored("unsent pattern notification: %s" % pattern, attrs=['bold']))
 
     def notify_state_detected(self, state):
+        log.info(colored("state detection notification: %s" % state, attrs=['bold']))
         if self.config.send_mqtt:
             self.mqtt.publish(self.config.mqtt_state_detect_topic, str(state))
         elif self.config.send_webhook:
             self.ha_webhook_ot.send(str(state))
-        else:
-            log.info(colored("unsent state detection notification: %s" % state, attrs=['bold']))
 
     def listen_notify_q(self):
         while not self.stopped:

@@ -1,3 +1,4 @@
+import logging
 import time
 from threading import Thread
 
@@ -7,6 +8,7 @@ from picamera.array import PiRGBArray
 from lib.fps import FPS
 from lib.singleton_q import SingletonBlockingQueue
 
+log = logging.getLogger(__name__)
 
 class PiVideoStream:
     def __init__(self, resolution=(320, 240), framerate=32, format='rgb', **kwargs):
@@ -43,20 +45,24 @@ class PiVideoStream:
 
     def update(self):
         # keep looping infinitely until the thread is stopped
-        for f in self.stream:
-            # grab the frame from the stream and clear the stream in
-            # preparation for the next frame
-            self.frame_singleton.enqueue(f.array)
-            self.fps.count()
-            self.rawCapture.truncate(0)
+        try:
+            for f in self.stream:
+                # grab the frame from the stream and clear the stream in
+                # preparation for the next frame
+                self.frame_singleton.enqueue(f.array)
+                self.fps.count()
+                self.rawCapture.truncate(0)
 
-            # if the thread indicator variable is set, stop the thread
-            # and resource camera resources
-            if self.stopped:
-                self.stream.close()
-                self.rawCapture.close()
-                self.camera.close()
-                return
+                # if the thread indicator variable is set, stop the thread
+                # and resource camera resources
+                if self.stopped:
+                    self.stream.close()
+                    self.rawCapture.close()
+                    self.camera.close()
+                    return
+        except Exception as e:
+            log.error(e)
+            self.stopped = True
 
     def read(self):
         # return the frame most recently read

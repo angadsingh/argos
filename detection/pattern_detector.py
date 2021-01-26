@@ -76,7 +76,11 @@ class PatternDetector():
         if ptn_idx == 0 or (ptn_idx == 1 and type(pattern_steps[ptn_idx - 1]) is NotState):
             return PatternMatch.NOT_MATCHED
         elif 0 < ptn_idx <= len(pattern_steps) - 1:
-            return PatternMatch.PARTIAL_MATCH
+            if type(pattern_steps[ptn_idx]) is NotState and ptn_idx == len((pattern_steps)) - 1 \
+                    and int(round(time.time())) - prev_match_ts > pattern_steps[ptn_idx].duration:
+                return PatternMatch.MATCHED
+            else:
+                return PatternMatch.PARTIAL_MATCH
         else:
             return PatternMatch.MATCHED
 

@@ -24,7 +24,7 @@ pattern_steps = {
                                               DoorStates.DOOR_CLOSED, ObjectStates.OBJECT_DETECTED],
     MovementPatterns.PERSON_EXITING_DOOR: [ObjectStates.OBJECT_DETECTED, DoorStates.DOOR_OPEN,
                                            DoorStates.DOOR_CLOSED, NotState(ObjectStates.OBJECT_DETECTED, 5)],
-    MovementPatterns.PERSON_ENTERING_DOOR: [NotState(ObjectStates.OBJECT_DETECTED),
+    MovementPatterns.PERSON_ENTERING_DOOR: [NotState(ObjectStates.OBJECT_DETECTED, 5),
                                             DoorStates.DOOR_OPEN, ObjectStates.OBJECT_DETECTED]
 }
 

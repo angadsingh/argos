@@ -108,7 +108,11 @@ class AdaptiveDoorStateDetector(DoorStateDetector):
             init_cont_avg_clr = convert_color(sRGBColor(*self.first_door_state_avg), LabColor)
             diff = delta_e_cmc(new_contour_avg_clr, init_cont_avg_clr, pl=1, pc=1)
             if diff > self.diff_threshold:
+                # print("%s/%s/%s" % (str(self.first_door_state_avg), self.door_state_order[1], str(diff)))
                 return self.door_state_order[1]
+            else:
+                pass
+                # print("%s/%s/%s" % (str(self.first_door_state_avg), self.door_state_order[0], str(diff)))
             if self.total_frames % self.avg_update_frames == 0:
                 self.first_door_state_avg = self.add_to_avg(
                     self.first_door_state_avg, new_contour_avg)
@@ -117,3 +121,39 @@ class AdaptiveDoorStateDetector(DoorStateDetector):
                 self.first_door_state_avg, new_contour_avg)
 
         return self.door_state_order[0]
+
+class SingleShotFrameDiffDoorStateDetector(DoorStateDetector):
+    def __init__(self, open_door_contour, door_frame_contour, threshold=500):
+        """
+        this door state detector monitors the color difference of the open_door_contour
+        and the door_frame_contour. when the diff is above a threshold door is open
+        should work across all lighting conditions and changes (including cameras going into
+        and coming out of night mode!)
+
+        :param open_door_contour: this should be placed at a spot on the door
+        :param door_frame_contour: this should be placed at a spot on the door frame (of the same color)
+        """
+        super().__init__(open_door_contour)
+        self.door_frame_contour = door_frame_contour
+        self.threshold = threshold
+
+    def get_contour_avg(self, frame, contour):
+        minX, minY, maxX, maxY = contour
+        img = frame[minY:maxY, minX:maxX]
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        average = img.mean(axis=0).mean(axis=0)
+        average = (int(average[0]), int(average[1]), int(average[2]))
+        return average
+
+    def detect_door_state(self, frame):
+        open_door_cont_avg = self.get_contour_avg(frame, self.open_door_contour)
+        door_frame_cont_avg = self.get_contour_avg(frame, self.door_frame_contour)
+
+        open_door_cont_avg_clr = convert_color(sRGBColor(*open_door_cont_avg), LabColor)
+        door_frame_cont_avg_clr = convert_color(sRGBColor(*door_frame_cont_avg), LabColor)
+        diff = delta_e_cmc(open_door_cont_avg_clr, door_frame_cont_avg_clr, pl=1, pc=1)
+
+        if diff > self.threshold:
+            return DoorStates.DOOR_OPEN
+        else:
+            return DoorStates.DOOR_CLOSED

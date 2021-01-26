@@ -14,13 +14,19 @@ from detection.states import StateHistoryStep, NotState
 
 class TestDoorDetect(unittest.TestCase):
 
+    class TimePass():
+        pass
+
     def _real_state_history(self, raw_state_history):
         total_delay = sum([d for (r, d) in raw_state_history])
         real_state_history = []
         t = int(round(time.time())) - total_delay
         for (raw_state, delay) in raw_state_history:
             t += delay
-            real_state_history.append(StateHistoryStep(raw_state, ts=t))
+            if type(raw_state) is TestDoorDetect.TimePass:
+                time.sleep(delay)
+            else:
+                real_state_history.append(StateHistoryStep(raw_state, ts=t))
         return real_state_history
 
     @parameterized.expand([
@@ -122,6 +128,18 @@ class TestDoorDetect(unittest.TestCase):
          [(ObjectStates.OBJECT_DETECTED, 1), (DoorStates.DOOR_OPEN, 1), (ObjectStates.OBJECT_DETECTED, 1),
           (DoorStates.DOOR_CLOSED, 1), (ObjectStates.OBJECT_DETECTED, 6)],
          PatternMatch.MATCHED],
+        [door_movement.pattern_steps[MovementPatterns.PERSON_ENTERING_DOOR],
+         [(ObjectStates.OBJECT_DETECTED,0), (MotionStates.NO_MOTION,3), (MotionStates.MOTION_INSIDE_MASK,4),
+          (ObjectStates.OBJECT_DETECTED,5), (DoorStates.DOOR_CLOSED,6), (ObjectStates.OBJECT_DETECTED,6),
+          (MotionStates.NO_MOTION,12), (MotionStates.MOTION_OUTSIDE_MASK,142), (MotionStates.MOTION_INSIDE_MASK,142),
+          (DoorStates.DOOR_OPEN,142), (ObjectStates.OBJECT_DETECTED,141)],
+         PatternMatch.MATCHED],
+        [door_movement.pattern_steps[MovementPatterns.PERSON_EXITING_DOOR],
+         [(DoorStates.DOOR_CLOSED,0), (MotionStates.NO_MOTION,0), (MotionStates.MOTION_INSIDE_MASK,1),
+          (ObjectStates.OBJECT_DETECTED,3), (MotionStates.NO_MOTION,6), (MotionStates.MOTION_INSIDE_MASK,14),
+          (ObjectStates.OBJECT_DETECTED,15), (DoorStates.DOOR_OPEN,17), (ObjectStates.OBJECT_DETECTED,17),
+          (DoorStates.DOOR_CLOSED,21),(TimePass(), 6)],
+         PatternMatch.MATCHED]
     ])
     def test_find_mov_ptn_state_history(self, mov_ptn, state_history, exp_result):
         actual_result = PatternDetector(None, door_movement.pattern_steps, door_movement.pattern_evaluation_order,

@@ -1,7 +1,8 @@
 from configs.config_base import ConfigBase
 from configs.config_patterns import door_movement
 from configs.constants import InputMode, DetectorType
-from detection.door_state_detectors import AdaptiveDoorStateDetector, SingleShotDoorStateDetector
+from detection.door_state_detectors import AdaptiveDoorStateDetector, SingleShotDoorStateDetector, \
+    SingleShotFrameDiffDoorStateDetector
 from detection.state_managers.door_state_manager import DoorStates
 
 
@@ -61,6 +62,11 @@ class Config(ConfigBase):
 
         # don't do motion detection in this mask
         self.md_nmask = None
+
+        # blur the output video wherever there is motion
+        # useful to share videos of argos in action or even
+        # if you are privacy conscious at home
+        self.md_blur_output_frame = True
 
         ## OBJECT DETECTOR CONFIG
 
@@ -136,10 +142,11 @@ class Config(ConfigBase):
         self.pattern_detection_state_history_length_partial = 300
 
         # see the docs for the respective door state detectors to understand how they work
-        # and how their parameters make them behave
+        # and how their parameters make them behave. you can choose one based on your environment
         # self.door_state_detector = SingleShotDoorStateDetector((215, 114, 227, 123), (118, 80, 26), (151, 117, 72))
-        self.door_state_detector = AdaptiveDoorStateDetector((215, 114, 227, 123),
-                                         (DoorStates.DOOR_CLOSED, DoorStates.DOOR_OPEN))
+        # self.door_state_detector = AdaptiveDoorStateDetector((215, 114, 227, 123),
+        #                                  (DoorStates.DOOR_CLOSED, DoorStates.DOOR_OPEN))
+        self.door_state_detector = SingleShotFrameDiffDoorStateDetector((215, 114, 227, 123), (196, 131, 215, 147))
 
         # show the door state in the output video frame
         self.door_state_detector_show_detection = True

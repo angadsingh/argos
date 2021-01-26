@@ -88,7 +88,7 @@ class StreamDetector():
         fps = FPS(50, 100)
 
         # loop over frames from the video stream
-        while True:
+        while not self.vs.stopped:
             frame = self.vs.read()
             if frame is not None:
                 output_frame = frame.copy()
@@ -245,7 +245,6 @@ if __name__ == '__main__':
 
     log.info("start reading video file")
     t = sd.start()
-
     t.join()
     sd.cleanup()
     mb.stop()

@@ -6,13 +6,16 @@ from notifier import Notifier, NotificationTypes
 
 
 class Broker():
-    def __init__(self, config, pattern_detector, broker_q: SingletonBlockingQueue, notify_q: SingletonBlockingQueue):
+    def __init__(self, config, pattern_detector, broker_q: SingletonBlockingQueue, notify_q, notifier = None):
         self.config = config
         self.pattern_detector = pattern_detector
         self.object_state_manager = ObjectStateManager(pattern_detector.state_history, pattern_detector.output_q)
         self.broker_q = broker_q
         self.notify_q = notify_q
-        self.notifier = Notifier(self.config, notify_q)
+        if notifier:
+            self.notifier = notifier
+        else:
+            self.notifier = Notifier(self.config, notify_q)
         self.stopped = False
         self.t = threading.Thread(target=self.broke)
         self.t.daemon = True

@@ -79,9 +79,16 @@ class SimpleMotionDetector():
                         (x, y, w, h) = cv2.boundingRect(c)
                         (minX, minY) = (min(minX, x), min(minY, y))
                         (maxX, maxY) = (max(maxX, x + w), max(maxY, y + h))
-                        if self.config.md_show_all_contours:
-                            cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 255), 2)
+                        if not self.config.md_blur_output_frame:
+                            if self.config.md_show_all_contours:
+                                cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 255), 2)
                 if filter_pass:
+                    if self.config.md_blur_output_frame:
+                        frame[minY:maxY, minX:maxX] = cv2.blur(frame[minY:maxY, minX:maxX], (83, 83))
+                        if self.config.md_show_all_contours:
+                            for c in cnts:
+                                (x, y, w, h) = cv2.boundingRect(c)
+                                cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 255), 2)
                     crop = minX, minY, maxX, maxY
                     if self.config.md_mask:
                         crop, is_contained = self.apply_mask_to_crop(minX, minY, maxX, maxY)

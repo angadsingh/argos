@@ -37,6 +37,7 @@ class RTMPVideoStream:
             if self.stopped:
                 self.vcap.release()
                 return
+        self.stopped = True
 
     def read(self):
         # return the frame most recently read

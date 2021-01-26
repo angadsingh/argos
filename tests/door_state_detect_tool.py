@@ -50,6 +50,7 @@ class DoorStateDetectTools():
         xmax = int(r[0] + r[2])
         ymin = int(r[1])
         ymax = int(r[1] + r[3])
+        print(str((xmin, ymin, xmax, ymax)))
 
         img = frame[ymin:ymax, xmin:xmax]
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
@@ -72,10 +73,13 @@ class DoorStateDetectTools():
 
 if __name__ == '__main__':
     # file = 'detection/doordetecttestdata/door movement/doorentering4.mov'
-    file = 'data/door_state_test_images/doorclosed_night2.jpg'
+    # file = 'data/door_state_test_images/doorclosed_night2.jpg'
     # open_door_contour = (215, 114, 227, 123)
     # DoorStateDetectTools()._door_state_from_image(file, open_door_contour)
     # DoorStateDetectTools()._door_state_from_video(file, open_door_contour)
     # DoorStateDetectTools()._create_contour_from_video(file)
+    file = 'data/door_state_test_images/doorclosed_night2.jpg'
+    DoorStateDetectTools(None)._create_contour_from_image(file)
 
-    DoorStateDetectTools()._create_contour_from_image(file)
+
+
