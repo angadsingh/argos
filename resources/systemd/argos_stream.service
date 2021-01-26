@@ -7,6 +7,8 @@ WorkingDirectory=/home/pi/argos
 ExecStart=/home/pi/argos-venv/bin/python /home/pi/argos/stream.py --ip 0.0.0.0 --port 8081 --config configs.your_config
 Restart=always
 RestartSec=5s
+StandardOutput=file:/var/log/argos_stream.log
+StandardError=inherit
 
 [Install]
 WantedBy=default.target

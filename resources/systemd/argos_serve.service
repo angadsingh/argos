@@ -7,6 +7,8 @@ WorkingDirectory=/home/pi/argos
 ExecStart=/home/pi/argos-venv/bin/python /home/pi/argos/serve.py --ip 0.0.0.0 --port 8080 --config configs.your_config --uploadfolder upload
 Restart=always
 RestartSec=5s
+StandardOutput=file:/var/log/argos_serve.log
+StandardError=inherit
 
 [Install]
 WantedBy=default.target
