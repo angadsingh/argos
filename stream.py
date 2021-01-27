@@ -12,7 +12,8 @@ from detection.state_managers.motion_state_manager import MotionStateManager
 
 for _ in ("colormath.color_conversions", "colormath.color_objects"):
     logging.getLogger(_).setLevel(logging.CRITICAL)
-logging.basicConfig(stream=sys.stdout, level=logging.INFO)
+logging.basicConfig(stream=sys.stdout, level=logging.INFO, format="%(asctime)s:%(levelname)s:%(name)s:%(message)s",
+                    datefmt='%Y-%m-%d %H:%M:%S')
 log = logging.getLogger(__name__)
 
 log.info("package import START")
