@@ -3,7 +3,7 @@ from threading import Thread
 import cv2
 
 from lib.fps import FPS
-from lib.singleton_q import SingletonBlockingQueue
+from lib.blocking_q import BlockingQueue
 import logging
 log = logging.getLogger(__name__)
 
@@ -12,7 +12,7 @@ class VideoFileStream:
         self.vcap = cv2.VideoCapture(file)
         self.stopped = False
         self.fps = FPS(50, 100)
-        self.frame_singleton = SingletonBlockingQueue()
+        self.frame_singleton = BlockingQueue()
 
     def start(self):
         self.t = Thread(target=self.update, args=())

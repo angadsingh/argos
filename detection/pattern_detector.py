@@ -1,10 +1,13 @@
 import logging
+import threading
 import time
 from enum import Enum
 
+import numpy as np
 from termcolor import colored
 
 from detection.state_managers.object_state_manager import ObjectStates
+from detection.state_managers.state_manager import StateManager
 from detection.states import NotState, StateHistoryStep
 from lib.timer import RepeatedTimer
 from notifier import NotificationTypes
@@ -26,19 +29,40 @@ class PatternMatch(Enum):
 
 
 class PatternDetector():
-    def __init__(self, output_q, pattern_steps, pattern_evaluation_order, state_history_length=20,
+    def __init__(self, output_q, pattern_steps, state_history_length=20,
                  state_history_length_partial=300, detection_interval=1):
         self.output_q = output_q
         self.pattern_steps = pattern_steps
-        self.pattern_evaluation_order = pattern_evaluation_order
         self.state_history = []
         self.state_history_length = state_history_length
         self.state_history_length_partial = state_history_length_partial
-        if detection_interval:
+        self.detection_interval = detection_interval
+        self.state_history_update_lock = threading.Lock()
+        self.state_managers = []
+        if self.detection_interval:
             self.pattern_detection_timer = RepeatedTimer(detection_interval, self.detect_patterns)
 
     def stop(self):
-        self.pattern_detection_timer.stop()
+        if self.detection_interval:
+            self.pattern_detection_timer.stop()
+
+    def register_state_manager(self, state_manager: StateManager):
+        self.state_managers.append(state_manager)
+
+    def add_to_state_history(self, new_state: StateHistoryStep, avoid_duplicates=False):
+        inserted = False
+        with self.state_history_update_lock:
+            i = 0
+            while i < len(self.state_history) and new_state.ts >= self.state_history[i].ts:
+                i += 1
+
+            if not avoid_duplicates or (
+                    avoid_duplicates and (i == 0 or self.state_history[i - 1].state is not new_state.state)):
+                self.state_history.insert(i, new_state)
+                inserted = True
+
+        self.detect_patterns()
+        return inserted
 
     def find_not_state_before_step(self, not_state: NotState, state_history, after_step_ts, from_idx, to_idx):
         while from_idx >= to_idx:
@@ -51,6 +75,7 @@ class PatternDetector():
         ptn_idx = 0
         prev_match_idx = -1
         prev_match_ts = 0
+        now = int(round(time.time()))
 
         while ptn_idx < len(pattern_steps) and shist_idx < len(state_history):
             ptn_step = pattern_steps[ptn_idx]
@@ -68,10 +93,13 @@ class PatternDetector():
 
             if type(ptn_step) is NotState:
                 if ptn_idx == len(pattern_steps) - 1:
-                    if self.find_not_state_before_step(ptn_step, state_history, prev_match_ts, len(state_history) - 1,
-                                                       shist_idx):
+                    if (now - prev_match_ts > pattern_steps[ptn_idx].duration or pattern_steps[
+                        ptn_idx].duration == np.inf) \
+                            and self.find_not_state_before_step(ptn_step, state_history, prev_match_ts,
+                                                                len(state_history) - 1, shist_idx):
                         ptn_idx = 0
                         break
+                    break
                 ptn_idx += 1
             else:
                 shist_idx += 1
@@ -139,33 +167,43 @@ class PatternDetector():
             return PatternMatch.PARTIAL_MATCH
         else:
             return PatternMatch.NOT_MATCHED
+    def _can_detect(self):
+        for mg in self.state_managers:
+            if mg.get_current_lag() > 0:
+                log.info(colored(
+                    "halting pattern detection till lag [%d] clears up for %s" % (
+                        mg.get_current_lag(), mg.__class__.__name__), 'white', attrs=['bold']))
+                return False
+        return True
 
     def detect_patterns(self):
-        any_partial_match = False
-        log.info(colored("stateHistory: %s" % str(self.state_history), 'white'))
-        for ptn in self.pattern_evaluation_order:
-            ptn_steps = self.pattern_steps[ptn]
-            ptn_match_result = self.find_mov_ptn_in_state_history(ptn_steps, self.state_history)
-            if ptn_match_result is PatternMatch.MATCHED:
-                log.info(colored("pattern detected: %s" % ptn.name, 'red', attrs=['bold']))
-                state_attrs = None
-                for state_step in self.state_history:
-                    if state_step.state == ObjectStates.OBJECT_DETECTED:
-                        state_attrs = state_step.state_attrs
-                self.state_history.clear()
-                self.output_q.enqueue((NotificationTypes.PATTERN_DETECTED, (ptn, state_attrs)))
-            elif ptn_match_result is PatternMatch.PARTIAL_MATCH:
-                log.info(colored("pattern partial match: %s" % ptn.name, 'red'))
-                any_partial_match = True
+        if self._can_detect():
+            any_partial_match = False
+            log.info(colored("stateHistory: %s" % str(self.state_history), 'white'))
+            for (ptn, ptn_steps) in self.pattern_steps:
+                ptn_match_result, states_to_find = self.find_mov_ptn_in_state_history(ptn_steps, self.state_history)
+                if ptn_match_result is PatternMatch.MATCHED:
+                    log.info(colored("pattern detected: %s" % ptn.name, 'red', attrs=['bold']))
+                    state_attrs = None
+                    for state_step in self.state_history:
+                        if state_step.state == ObjectStates.OBJECT_DETECTED:
+                            state_attrs = state_step.state_attrs
+                    with self.state_history_update_lock:
+                        self.state_history.clear()
+                    self.output_q.enqueue((NotificationTypes.PATTERN_DETECTED, (ptn, state_attrs)))
+                elif ptn_match_result is PatternMatch.PARTIAL_MATCH:
+                    log.info(colored("pattern partial match: %s" % ptn.name, 'red'))
+                    any_partial_match = True
 
-        self.prune_state_history(any_partial_match)
+            self.prune_state_history(any_partial_match)
 
     def prune_state_history(self, any_partial_match):
-        now = int(round(time.time()))
-        for state_step in self.state_history:
-            if not any_partial_match:
-                if now - state_step.ts > self.state_history_length:
-                    self.state_history.remove(state_step)
-            else:
-                if now - state_step.ts > self.state_history_length_partial:
-                    self.state_history.remove(state_step)
+        with self.state_history_update_lock:
+            now = int(round(time.time()))
+            for state_step in self.state_history:
+                if not any_partial_match:
+                    if now - state_step.ts > self.state_history_length:
+                        self.state_history.remove(state_step)
+                else:
+                    if now - state_step.ts > self.state_history_length_partial:
+                        self.state_history.remove(state_step)

@@ -13,7 +13,6 @@ from detection.states import StateHistoryStep, NotState
 
 
 class TestDoorDetect(unittest.TestCase):
-
     class TimePass():
         pass
 
@@ -67,16 +66,16 @@ class TestDoorDetect(unittest.TestCase):
         [[DoorStates.DOOR_OPEN, DoorStates.DOOR_CLOSED, NotState(ObjectStates.OBJECT_DETECTED)],
          [(DoorStates.DOOR_OPEN, 1), (MotionStates.MOTION_INSIDE_MASK, 1),
           (DoorStates.DOOR_CLOSED, 1), (MotionStates.MOTION_INSIDE_MASK, 1)],
-         PatternMatch.MATCHED],
+         PatternMatch.PARTIAL_MATCH],
         [[DoorStates.DOOR_OPEN, DoorStates.DOOR_CLOSED, NotState(ObjectStates.OBJECT_DETECTED)],
          [(DoorStates.DOOR_OPEN, 1), (MotionStates.MOTION_INSIDE_MASK, 1),
           (DoorStates.DOOR_CLOSED, 1), (MotionStates.MOTION_INSIDE_MASK, 1), (ObjectStates.OBJECT_DETECTED, 1)],
          PatternMatch.NOT_MATCHED],
-        [door_movement.pattern_steps[MovementPatterns.PERSON_ENTERING_DOOR],
+        [[NotState(ObjectStates.OBJECT_DETECTED, 5), DoorStates.DOOR_OPEN, ObjectStates.OBJECT_DETECTED],
          [(ObjectStates.OBJECT_DETECTED, 1), (DoorStates.DOOR_OPEN, 1), (ObjectStates.OBJECT_DETECTED, 1),
           (DoorStates.DOOR_CLOSED, 1)],
          PatternMatch.NOT_MATCHED],
-        [door_movement.pattern_steps[MovementPatterns.PERSON_ENTERING_DOOR],
+        [[NotState(ObjectStates.OBJECT_DETECTED, 5), DoorStates.DOOR_OPEN, ObjectStates.OBJECT_DETECTED],
          [(DoorStates.DOOR_OPEN, 1), (ObjectStates.OBJECT_DETECTED, 1), (DoorStates.DOOR_CLOSED, 1)],
          PatternMatch.MATCHED],
         [[NotState(ObjectStates.OBJECT_DETECTED, 2), DoorStates.DOOR_OPEN, ObjectStates.OBJECT_DETECTED],
@@ -113,38 +112,44 @@ class TestDoorDetect(unittest.TestCase):
          [(ObjectStates.OBJECT_DETECTED, 0), (DoorStates.DOOR_OPEN, 1), (ObjectStates.OBJECT_DETECTED, 1),
           (DoorStates.DOOR_OPEN, 1), (ObjectStates.OBJECT_DETECTED, 1), (DoorStates.DOOR_CLOSED, 1)],
          PatternMatch.NOT_MATCHED],
-        [door_movement.pattern_steps[MovementPatterns.PERSON_EXITING_DOOR],
+        [[ObjectStates.OBJECT_DETECTED, DoorStates.DOOR_OPEN, DoorStates.DOOR_CLOSED, NotState(ObjectStates.OBJECT_DETECTED, 5)],
          [(ObjectStates.OBJECT_DETECTED, 1), (DoorStates.DOOR_OPEN, 1), (ObjectStates.OBJECT_DETECTED, 1),
           (DoorStates.DOOR_CLOSED, 1)],
          PatternMatch.PARTIAL_MATCH],
-        [door_movement.pattern_steps[MovementPatterns.PERSON_EXITING_DOOR],
+        [[ObjectStates.OBJECT_DETECTED, DoorStates.DOOR_OPEN, DoorStates.DOOR_CLOSED, NotState(ObjectStates.OBJECT_DETECTED, 5)],
          [(ObjectStates.OBJECT_DETECTED, 1), (DoorStates.DOOR_OPEN, 1), (ObjectStates.OBJECT_DETECTED, 1),
           (DoorStates.DOOR_CLOSED, 1), (MotionStates.MOTION_INSIDE_MASK, 5)],
-         PatternMatch.MATCHED],
-        [door_movement.pattern_steps[MovementPatterns.PERSON_EXITING_DOOR],
+         PatternMatch.PARTIAL_MATCH],
+        [[ObjectStates.OBJECT_DETECTED, DoorStates.DOOR_OPEN, DoorStates.DOOR_CLOSED, NotState(ObjectStates.OBJECT_DETECTED, 5)],
          [(ObjectStates.OBJECT_DETECTED, 1), (DoorStates.DOOR_OPEN, 1), (ObjectStates.OBJECT_DETECTED, 1)],
          PatternMatch.PARTIAL_MATCH],
-        [door_movement.pattern_steps[MovementPatterns.PERSON_EXITING_DOOR],
+        [[ObjectStates.OBJECT_DETECTED, DoorStates.DOOR_OPEN, DoorStates.DOOR_CLOSED, NotState(ObjectStates.OBJECT_DETECTED, 5)],
          [(ObjectStates.OBJECT_DETECTED, 1), (DoorStates.DOOR_OPEN, 1), (ObjectStates.OBJECT_DETECTED, 1),
           (DoorStates.DOOR_CLOSED, 1), (ObjectStates.OBJECT_DETECTED, 6)],
          PatternMatch.MATCHED],
-        [door_movement.pattern_steps[MovementPatterns.PERSON_ENTERING_DOOR],
-         [(ObjectStates.OBJECT_DETECTED,0), (MotionStates.NO_MOTION,3), (MotionStates.MOTION_INSIDE_MASK,4),
-          (ObjectStates.OBJECT_DETECTED,5), (DoorStates.DOOR_CLOSED,6), (ObjectStates.OBJECT_DETECTED,6),
-          (MotionStates.NO_MOTION,12), (MotionStates.MOTION_OUTSIDE_MASK,142), (MotionStates.MOTION_INSIDE_MASK,142),
-          (DoorStates.DOOR_OPEN,142), (ObjectStates.OBJECT_DETECTED,141)],
+        [[NotState(ObjectStates.OBJECT_DETECTED, 5), DoorStates.DOOR_OPEN, ObjectStates.OBJECT_DETECTED],
+         [(ObjectStates.OBJECT_DETECTED, 0), (MotionStates.NO_MOTION, 3), (MotionStates.MOTION_INSIDE_MASK, 4),
+          (ObjectStates.OBJECT_DETECTED, 5), (DoorStates.DOOR_CLOSED, 6), (ObjectStates.OBJECT_DETECTED, 6),
+          (MotionStates.NO_MOTION, 12), (MotionStates.MOTION_OUTSIDE_MASK, 142), (MotionStates.MOTION_INSIDE_MASK, 142),
+          (DoorStates.DOOR_OPEN, 142), (ObjectStates.OBJECT_DETECTED, 141)],
          PatternMatch.MATCHED],
-        [door_movement.pattern_steps[MovementPatterns.PERSON_EXITING_DOOR],
-         [(DoorStates.DOOR_CLOSED,0), (MotionStates.NO_MOTION,0), (MotionStates.MOTION_INSIDE_MASK,1),
-          (ObjectStates.OBJECT_DETECTED,3), (MotionStates.NO_MOTION,6), (MotionStates.MOTION_INSIDE_MASK,14),
-          (ObjectStates.OBJECT_DETECTED,15), (DoorStates.DOOR_OPEN,17), (ObjectStates.OBJECT_DETECTED,17),
-          (DoorStates.DOOR_CLOSED,21),(TimePass(), 6)],
-         PatternMatch.MATCHED]
+        [[ObjectStates.OBJECT_DETECTED, DoorStates.DOOR_OPEN, DoorStates.DOOR_CLOSED, NotState(ObjectStates.OBJECT_DETECTED, 5)],
+         [(DoorStates.DOOR_CLOSED, 0), (MotionStates.NO_MOTION, 0), (MotionStates.MOTION_INSIDE_MASK, 1),
+          (ObjectStates.OBJECT_DETECTED, 3), (MotionStates.NO_MOTION, 6), (MotionStates.MOTION_INSIDE_MASK, 14),
+          (ObjectStates.OBJECT_DETECTED, 15), (DoorStates.DOOR_OPEN, 17), (ObjectStates.OBJECT_DETECTED, 17),
+          (DoorStates.DOOR_CLOSED, 21), (TimePass(), 6)],
+         PatternMatch.MATCHED],
+        [[MotionStates.MOTION_INSIDE_MASK, DoorStates.DOOR_OPEN, DoorStates.DOOR_CLOSED, NotState(ObjectStates.OBJECT_DETECTED, 5)],
+         [(MotionStates.NO_MOTION, 6), (MotionStates.MOTION_INSIDE_MASK, 14), (DoorStates.DOOR_OPEN, 17), (ObjectStates.OBJECT_DETECTED, 17),
+          (DoorStates.DOOR_CLOSED, 21), (TimePass(), 6)],
+         PatternMatch.MATCHED],
+        [[MotionStates.MOTION_INSIDE_MASK, DoorStates.DOOR_OPEN, DoorStates.DOOR_CLOSED, NotState(ObjectStates.OBJECT_DETECTED, 5)],
+            [(DoorStates.DOOR_CLOSED,0), (MotionStates.NO_MOTION,0), (MotionStates.MOTION_INSIDE_MASK,1), (ObjectStates.OBJECT_DETECTED,1), (DoorStates.DOOR_OPEN,1), (ObjectStates.OBJECT_DETECTED,1), (DoorStates.DOOR_CLOSED,2), (MotionStates.MOTION_OUTSIDE_MASK,2), (MotionStates.NO_MOTION,2)],
+         PatternMatch.PARTIAL_MATCH]
     ])
     def test_find_mov_ptn_state_history(self, mov_ptn, state_history, exp_result):
-        actual_result = PatternDetector(None, door_movement.pattern_steps, door_movement.pattern_evaluation_order,
-                                        detection_interval=None).find_mov_ptn_in_state_history(mov_ptn,
-                                                                                               self._real_state_history(
+        actual_result = PatternDetector(None, door_movement.pattern_steps,
+                                        detection_interval=None).find_mov_ptn_in_state_history(mov_ptn, self._real_state_history(
                                                                                                    state_history))
         print("mov_ptn: %s" % mov_ptn)
         print("state_history: %s" % state_history)

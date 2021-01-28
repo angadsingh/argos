@@ -2,10 +2,14 @@ from abc import ABC, abstractmethod
 
 
 class StateManager(ABC):
-    def __init__(self, state_history, output_q):
-        self.state_history = state_history
+    def __init__(self, pattern_detector, output_q):
+        self.pattern_detector = pattern_detector
+        self.pattern_detector.register_state_manager(self)
         self.output_q = output_q
 
     @abstractmethod
-    def add_state(self, state):
+    def add_state(self, state, ts=None):
         pass
+
+    def get_current_lag(self):
+        return 0

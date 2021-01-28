@@ -46,9 +46,9 @@ class ConfigBase:
         self.tf_output_detection_path = None
         self.pattern_detection_enabled = True
         self.pattern_detection_pattern_steps = None
-        self.pattern_detection_patter_eval_order = None
         self.pattern_detection_state_history_length = 20
         self.pattern_detection_state_history_length_partial = 300
+        self.pattern_detection_interval = 1
         self.door_state_detector = None
         self.door_state_detector_show_detection = False
         self.debug_mode = False

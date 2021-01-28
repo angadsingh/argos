@@ -4,9 +4,9 @@ from datetime import datetime
 import numpy as np
 
 from configs.constants import DetectorType
+from lib.blocking_q import BlockingQueue
 from lib.detection_buffer import DetectionBuffer
 from lib.fps import FPS
-from lib.singleton_q import SingletonBlockingQueue
 from termcolor import colored
 
 import logging
@@ -15,7 +15,7 @@ log = logging.getLogger(__name__)
 class BaseTFObjectDetector:
     def __init__(self, config):
         self.config = config
-        self.input_frame = SingletonBlockingQueue()
+        self.input_frame = BlockingQueue(max_size=1000)
 
         if self.config.tf_detection_buffer_enabled:
             self.detection_buffer = DetectionBuffer(config.tf_detection_buffer_duration,
@@ -107,7 +107,9 @@ class BaseTFObjectDetector:
          accuracy_threshold=threshold, masks = masks, nmasks = nmasks
         )
 
-    def detect_image_buffered(self, frame, cropped_frame, cropOffsetX, cropOffsetY):
+    def detect_image_buffered(self, frame, cropped_frame, cropOffsetX, cropOffsetY, ts):
+        if not ts:
+            ts = time.time()
         det_boxes = self.apply_od_filters(self.tf_detector.DetectFromImage(cropped_frame))
         if det_boxes is not None and len(det_boxes) > 0:
             detections = True
@@ -118,7 +120,7 @@ class BaseTFObjectDetector:
             for box in det_boxes:
                 minx, miny, maxx, maxy, label, accuracy = box
                 image_path = "%s/detection_%s_%s.jpg" % (
-                    self.config.tf_output_detection_path, label, datetime.now().strftime("%d-%m-%Y-%H-%M-%S"))
+                    self.config.tf_output_detection_path, label, datetime.fromtimestamp(ts).strftime("%d-%m-%Y-%H-%M-%S"))
                 orig_box = minx + cropOffsetX, miny + cropOffsetY, maxx + cropOffsetX, maxy + cropOffsetY, label, accuracy
                 if self.config.tf_detection_buffer_enabled:
                     self.detection_buffer.add_detection((orig_box, image_path))
@@ -132,10 +134,10 @@ class BaseTFObjectDetector:
             if detections:
                 if self.config.tf_detection_buffer_enabled:
                     label, accuracy, image_path = self.detection_buffer.get_max_cumulative_accuracy_label()
-                    self.process_detection_final(label, accuracy, image_path)
+                    self.process_detection_final(label, accuracy, image_path, ts)
                     return label, accuracy
                 else:
-                    self.process_detection_final(max_accuracy_label, max_accuracy, max_accuracy_img_path)
+                    self.process_detection_final(max_accuracy_label, max_accuracy, max_accuracy_img_path, ts)
                     return max_accuracy_label, max_accuracy
 
         return None, None
@@ -150,7 +152,9 @@ class BaseTFObjectDetector:
         self.initialize_tf_model()
 
         while True:
-            task = self.input_frame.dequeue()
+            if self.config.od_frame_rate > 0:
+                time.sleep(1 / self.config.od_frame_rate)
+            task = self.input_frame.dequeue(notify=True)
             if task == -1:
                 break
             (frame, cropped_frame, (cropOffsetX, cropOffsetY)) = task

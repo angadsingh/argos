@@ -6,7 +6,7 @@ from picamera import PiCamera
 from picamera.array import PiRGBArray
 
 from lib.fps import FPS
-from lib.singleton_q import SingletonBlockingQueue
+from lib.blocking_q import BlockingQueue
 
 log = logging.getLogger(__name__)
 
@@ -33,7 +33,7 @@ class PiVideoStream:
         self.stopped = False
 
         self.fps = FPS(50, 100)
-        self.frame_singleton = SingletonBlockingQueue()
+        self.frame_singleton = BlockingQueue()
 
     def start(self):
         # start the thread to read frames from the video stream

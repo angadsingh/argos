@@ -5,10 +5,11 @@ import collections
 import threading
 
 
-class SingletonBlockingQueue(object):
-    def __init__(self):
+class BlockingQueue(object):
+    def __init__(self, max_size = 1):
         self.__cv = threading.Condition()
         self.__q = collections.deque()
+        self.max_size = max_size
 
     def enqueue(self, element, wait = False):
         """
@@ -16,11 +17,11 @@ class SingletonBlockingQueue(object):
         :rtype: void
         """
         with self.__cv:
-            while len(self.__q) == 1:
+            while len(self.__q) == self.max_size:
                 if wait:
                     self.__cv.wait()
                 else:
-                    self.__q.clear()
+                    self.__q.popleft()
             self.__q.append(element)
             self.__cv.notifyAll()
 
@@ -38,6 +39,11 @@ class SingletonBlockingQueue(object):
             if notify:
                 self.__cv.notifyAll()
             return element
+
+    def wait_for_empty(self):
+        with self.__cv:
+            while len(self.__q) > 0:
+                self.__cv.wait()
 
     def size(self):
         """

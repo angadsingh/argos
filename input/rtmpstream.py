@@ -3,7 +3,7 @@ from threading import Thread
 import cv2
 
 from lib.fps import FPS
-from lib.singleton_q import SingletonBlockingQueue
+from lib.blocking_q import BlockingQueue
 
 import logging
 log = logging.getLogger(__name__)
@@ -15,7 +15,7 @@ class RTMPVideoStream:
         log.info("rtmp capture init END")
         self.stopped = False
         self.fps = FPS(50, 100)
-        self.frame_singleton = SingletonBlockingQueue()
+        self.frame_singleton = BlockingQueue()
 
     def start(self):
         self.t = Thread(target=self.update, args=())
@@ -28,11 +28,15 @@ class RTMPVideoStream:
         debug_frame = 100
         while self.vcap.isOpened() and not self.stopped:
             ret, frame = self.vcap.read()
-            if total % debug_frame == 0:
-                log.debug("rtmp capturing..")
-            self.frame_singleton.enqueue(frame)
-            self.fps.count()
-            total += 1
+            if not ret:
+                log.error('RTMP Stream ended!')
+                break
+            else:
+                if total % debug_frame == 0:
+                    log.debug("rtmp capturing..")
+                self.frame_singleton.enqueue(frame)
+                self.fps.count()
+                total += 1
 
         self.stopped = True
         self.vcap.release()

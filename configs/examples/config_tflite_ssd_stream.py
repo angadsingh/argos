@@ -128,13 +128,12 @@ class Config(ConfigBase):
         # this is where you can define your own patterns and do something
         # beyond door movement (the first use case this project was built for)
 
-        # `pattern_detection_pattern_steps` needs to be a map of [pattern: list of states]
+        # `pattern_detection_pattern_steps` needs to be a list of tuples (pattern: [list of states])
         # the list of states can include NotStates for negation
         # see the doc of `PatternDetector.find_mov_ptn_in_state_history()` to see how
         # all this works with examples.
         # argos ships with a pattern out of the box in config_patterns/door_movement.py
         self.pattern_detection_pattern_steps = door_movement.pattern_steps
-        self.pattern_detection_patter_eval_order = door_movement.pattern_evaluation_order
 
         # duration of time in seconds for which the pattern detection state history should
         # to be maintained
@@ -143,6 +142,9 @@ class Config(ConfigBase):
         # duration (in seconds) for which pattern detection state history length
         # should be kept if there are partial pattern matches
         self.pattern_detection_state_history_length_partial = 300
+
+        # run the pattern detector even interval seconds
+        self.pattern_detection_interval = 1
 
         # see the docs for the respective door state detectors to understand how they work
         # and how their parameters make them behave. you can choose one based on your environment

@@ -5,6 +5,7 @@ import sys
 import jsonpickle
 
 from detection.motion_detector import SimpleMotionDetector
+from detection.object_detector_base import BaseTFObjectDetector
 from detection.object_detector_streaming import StreamingTFObjectDetector
 from detection.pattern_detector import PatternDetector
 from detection.state_managers.door_state_manager import DoorStateManager
@@ -34,27 +35,27 @@ from flask import render_template
 from flask import request
 
 from lib.fps import FPS
-from lib.singleton_q import SingletonBlockingQueue
+from lib.blocking_q import BlockingQueue
 from flask_classful import route
 
 log.info("package import END")
 
 
 class StreamDetector():
-    def __init__(self, config, broker_q, pattern_detector: PatternDetector):
-        self.outputFrame = SingletonBlockingQueue()
+    def __init__(self, config, object_detector: BaseTFObjectDetector, pattern_detector: PatternDetector):
+        self.outputFrame = BlockingQueue()
         self.active_video_feeds = 0
         self.config = config
-        self.broker_q = broker_q
+        self.od = object_detector
         self.pattern_detector = pattern_detector
-        self.door_state_manager = DoorStateManager(pattern_detector.state_history, pattern_detector.output_q)
-        self.motion_state_manager = MotionStateManager(pattern_detector.state_history, pattern_detector.output_q)
+        self.door_state_manager = DoorStateManager(pattern_detector, pattern_detector.output_q)
+        self.motion_state_manager = MotionStateManager(pattern_detector, pattern_detector.output_q)
         self.motion_detector = SimpleMotionDetector(config)
         self.stopped = False
 
     def start(self):
         log.info("TFObjectDetector init START")
-        self.od = StreamingTFObjectDetector(self.config, self.broker_q).start()
+        self.od.start()
 
         if self.config.input_mode == InputMode.RTMP_STREAM:
             from input.rtmpstream import RTMPVideoStream
@@ -111,9 +112,10 @@ class StreamDetector():
                     if crop is not None:
                         minX, minY, maxX, maxY = crop
                         cropped_frame = frame[minY:maxY, minX:maxX]
-                        self.od.add_task((frame, cropped_frame, (minX, minY)))
+                        ts = time.time()
+                        self.od.add_task((frame, cropped_frame, (minX, minY), ts))
                 else:
-                    self.od.add_task((frame, frame, (0, 0), None))
+                    self.od.add_task((frame, frame, (0, 0), None, None))
 
                 self.draw_masks(output_frame)
 
@@ -234,16 +236,17 @@ if __name__ == '__main__':
 
     m = importlib.import_module(args["config"])
     config = getattr(m, "Config")()
-    broker_q = SingletonBlockingQueue()
-    notify_q = SingletonBlockingQueue()
+    broker_q = BlockingQueue()
+    notify_q = BlockingQueue()
     pattern_detector = None
     if config.pattern_detection_enabled:
         pattern_detector = PatternDetector(broker_q, config.pattern_detection_pattern_steps,
-                                           config.pattern_detection_patter_eval_order,
                                            config.pattern_detection_state_history_length,
-                                           config.pattern_detection_state_history_length_partial)
-    sd = StreamDetector(config, broker_q, pattern_detector)
-    mb = Broker(sd.config, pattern_detector, broker_q, notify_q)
+                                           config.pattern_detection_state_history_length_partial,
+                                           config.pattern_detection_interval)
+    od = StreamingTFObjectDetector(config, broker_q)
+    sd = StreamDetector(config, od, pattern_detector)
+    mb = Broker(sd.config, od, pattern_detector, broker_q, notify_q)
 
     log.info("flask init..")
     app = Flask(__name__)

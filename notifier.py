@@ -43,7 +43,8 @@ class Notifier():
         self.t.daemon = True
         self.t.start()
 
-    def notify_object_detected(self, label, accuracy, img_path):
+    def notify_object_detected(self, state, ts):
+        label, accuracy, img_path = state
         if label is not None:
             log.info(colored("object notification: label [%s], accuracy[%s]" % (
                 label, str(accuracy)
@@ -55,7 +56,9 @@ class Notifier():
                 self.ha_webhook_od.send(label, img_path)
 
     def notify_pattern_detected(self, pattern, pattern_attrs):
-        label, accuracy, img_path = pattern_attrs
+        img_path = "no.jpg"
+        if pattern_attrs:
+            label, accuracy, img_path = pattern_attrs
         log.info(colored("pattern notification: %s" % pattern, attrs=['bold']))
         if self.config.send_mqtt:
             self.mqtt.publish(self.config.mqtt_movement_pattern_detect_topic, str(pattern.name))

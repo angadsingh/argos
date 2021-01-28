@@ -4,7 +4,7 @@ import pascal_voc_writer
 import cv2
 
 from detection.object_detector_base import BaseTFObjectDetector
-from lib.singleton_q import SingletonBlockingQueue
+from lib.blocking_q import BlockingQueue
 from notifier import NotificationTypes
 
 
@@ -12,7 +12,7 @@ class StreamingTFObjectDetector(BaseTFObjectDetector):
     def __init__(self, config, output_q):
         super().__init__(config)
         self.output_q = output_q
-        self.output_frame = SingletonBlockingQueue()
+        self.output_frame = BlockingQueue()
         self.active_video_feeds = 0
 
     def process_detection_intermeddiate(self, frame, orig_box, image_path):

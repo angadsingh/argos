@@ -10,8 +10,9 @@ from termcolor import colored
 from broker import Broker
 from configs.config_patterns.door_movement import MovementPatterns
 from configs.constants import InputMode
+from detection.object_detector_streaming import StreamingTFObjectDetector
 from detection.pattern_detector import PatternDetector
-from lib.singleton_q import SingletonBlockingQueue
+from lib.blocking_q import BlockingQueue
 from notifier import Notifier, NotificationTypes
 from stream import StreamDetector
 from tests import config_test_stream
@@ -59,17 +60,17 @@ class TestArgosStream(unittest.TestCase):
         config.input_mode = InputMode.VIDEO_FILE
         config.video_file_path = './data/door_pattern_videos/%s' % video_file
 
-        broker_q = SingletonBlockingQueue()
-        notify_q = SingletonBlockingQueue()
+        broker_q = BlockingQueue()
+        notify_q = BlockingQueue()
         mock_notifier = MockNotifier(config, notify_q, expected_pattern)
 
         pattern_detector = PatternDetector(broker_q, config.pattern_detection_pattern_steps,
-                                           config.pattern_detection_patter_eval_order,
                                            config.pattern_detection_state_history_length,
                                            config.pattern_detection_state_history_length_partial,
-                                           detection_interval=3)
-        sd = StreamDetector(config, broker_q, pattern_detector)
-        mb = Broker(sd.config, pattern_detector, broker_q, notify_q, notifier=mock_notifier)
+                                           config.pattern_detection_interval)
+        od = StreamingTFObjectDetector(config, broker_q)
+        sd = StreamDetector(config, od, pattern_detector)
+        mb = Broker(sd.config, od, pattern_detector, broker_q, notify_q, notifier=mock_notifier)
 
         md_window_name = "motion detector"
         od_window_name = "object detector"
@@ -100,10 +101,22 @@ class TestArgosStream(unittest.TestCase):
                 cv2.imshow(od_window_name, od_frame)
 
         sd.wait_for_completion()
+
+        if mb.object_state_manager.get_current_lag() > 0:
+            log.info(colored("waiting for the object detector to finish..", "yellow"))
+            mb.object_state_manager.object_detector.input_frame.wait_for_empty()
+
         # some patterns require the passage of time to process
         if time_pass > 0:
             log.info(colored("waiting a bit more for the pattern detector..", "yellow"))
             time.sleep(time_pass)
+
+        pattern_detector.detect_patterns()
+
+        while broker_q.size() > 0:
+            log.info(colored("waiting for the pattern detector to finish..", "yellow"))
+            broker_q.read(0.1)
+
         sd.stop()
         mb.stop()
         pattern_detector.stop()

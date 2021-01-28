@@ -3,6 +3,7 @@ from enum import Enum
 
 from termcolor import colored
 
+from detection.object_detector_base import BaseTFObjectDetector
 from detection.state_managers.state_manager import StateManager
 from detection.states import StateHistoryStep
 
@@ -14,13 +15,17 @@ class ObjectStates(Enum):
 
 
 class ObjectStateManager(StateManager):
-    def __init__(self, state_history, output_q):
-        super().__init__(state_history, output_q)
-        self.last_door_state = None
+    def __init__(self, object_detector: BaseTFObjectDetector, pattern_detector, output_q):
+        super().__init__(pattern_detector, output_q)
+        self.object_detector = object_detector
 
-    def add_state(self, state):
+    def add_state(self, state, ts = None):
         (label, accuracy, image_path) = state
-        if len(self.state_history) == 0 or self.state_history[-1].state is not ObjectStates.OBJECT_DETECTED:
-            self.state_history.append(
-                StateHistoryStep(ObjectStates.OBJECT_DETECTED, state_attrs=(label, accuracy, image_path)))
-            log.info(colored("object state changed: %s" % str(ObjectStates.OBJECT_DETECTED), 'blue', attrs=['bold']))
+        history_step = StateHistoryStep(ObjectStates.OBJECT_DETECTED, state_attrs=(label, accuracy, image_path), ts=ts)
+        added = self.pattern_detector.add_to_state_history(
+            history_step, avoid_duplicates = True)
+        if added:
+            log.info(colored("object state changed: %s" % history_step, 'blue', attrs=['bold']))
+
+    def get_current_lag(self):
+        return self.object_detector.input_frame.size()

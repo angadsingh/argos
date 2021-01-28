@@ -46,6 +46,7 @@ class Config(ConfigBase):
         self.pattern_detection_patter_eval_order = door_movement.pattern_evaluation_order
         self.pattern_detection_state_history_length = 200
         self.pattern_detection_state_history_length_partial = 300
+        self.pattern_detection_interval = 0
         self.door_state_detector = SingleShotFrameDiffDoorStateDetector((215, 114, 227, 123), (196, 131, 215, 147))
         self.door_state_detector_show_detection = True
         self.md_frame_rate = 10
