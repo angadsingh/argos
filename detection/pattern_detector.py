@@ -77,7 +77,7 @@ class PatternDetector():
         prev_match_idx = -1
         prev_match_ts = 0
         if not now:
-            now = state_history[-1].ts
+            now = max(time.time(), state_history[-1].ts)
 
         while ptn_idx < len(pattern_steps) and shist_idx < len(state_history) and state_history[shist_idx].ts <= now:
             ptn_step = pattern_steps[ptn_idx]
@@ -192,7 +192,8 @@ class PatternDetector():
     def detect_patterns(self):
         if self._can_detect():
             any_partial_match = False
-            log.info(colored("stateHistory: %s" % str(self.state_history), 'white'))
+            if len(self.state_history) > 0:
+                log.info(colored("stateHistory: %s" % str(self.state_history), 'white'))
             for (ptn, ptn_steps) in self.pattern_steps:
                 ptn_match_result, states_to_find = self.find_mov_ptn_in_state_history(ptn_steps, self.state_history)
                 if ptn_match_result is PatternMatch.MATCHED:
