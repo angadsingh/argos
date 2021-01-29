@@ -1,9 +1,11 @@
 import threading
+import time
 from datetime import datetime
 
 import numpy as np
 
 from configs.constants import DetectorType
+from detection.StateDetectorBase import StateDetectorBase
 from lib.blocking_q import BlockingQueue
 from lib.detection_buffer import DetectionBuffer
 from lib.fps import FPS
@@ -12,8 +14,9 @@ from termcolor import colored
 import logging
 log = logging.getLogger(__name__)
 
-class BaseTFObjectDetector:
+class BaseTFObjectDetector(StateDetectorBase):
     def __init__(self, config):
+        super().__init__()
         self.config = config
         self.input_frame = BlockingQueue(max_size=1000)
 
@@ -31,7 +34,7 @@ class BaseTFObjectDetector:
         return self
 
     def stop(self):
-        self.input_frame.enqueue(-1)
+        self.input_frame.enqueue(-1, wait=True)
         self.t.join()
         self.fps.stop()
 
@@ -55,7 +58,7 @@ class BaseTFObjectDetector:
             return self.ready
 
     def add_task(self, task):
-        self.input_frame.enqueue(task)
+        self.input_frame.enqueue(task, wait=True)
 
     def apply_od_filters(self, det_boxes, accuracy_threshold=None, box_thresholds=None, masks=None, nmasks=None):
         accuracy_threshold = self.config.tf_accuracy_threshold if accuracy_threshold is None else accuracy_threshold
@@ -145,20 +148,22 @@ class BaseTFObjectDetector:
     def process_detection_intermeddiate(self, frame, orig_box, image_path):
         pass
 
-    def process_detection_final(self, label, accuracy, image_path):
+    def process_detection_final(self, label, accuracy, image_path, ts):
         pass
 
     def detect_continuously(self):
         self.initialize_tf_model()
 
         while True:
-            if self.config.od_frame_rate > 0:
-                time.sleep(1 / self.config.od_frame_rate)
             task = self.input_frame.dequeue(notify=True)
             if task == -1:
                 break
-            (frame, cropped_frame, (cropOffsetX, cropOffsetY)) = task
-            self.fps.count()
-            cropped_frame = np.copy(cropped_frame)
-            cropped_frame.setflags(write=1)
-            self.detect_image_buffered(frame, cropped_frame, cropOffsetX, cropOffsetY)
+            (frame, cropped_frame, (cropOffsetX, cropOffsetY), ts) = task
+            if not self.task_skipper.skip_task(ts):
+                self.fps.count()
+                cropped_frame = np.copy(cropped_frame)
+                cropped_frame.setflags(write=1)
+                self.detect_image_buffered(frame, cropped_frame, cropOffsetX, cropOffsetY, ts)
+
+                if self.config.od_frame_rate > 0:
+                    time.sleep(1 / self.config.od_frame_rate)

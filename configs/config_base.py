@@ -70,3 +70,4 @@ class ConfigBase:
         self.input_mode = None
         self.rtmp_stream_url = None
         self.video_file_path = None
+        self.video_in_sync = True

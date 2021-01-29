@@ -1,3 +1,4 @@
+import copy
 import logging
 import threading
 import time
@@ -71,13 +72,14 @@ class PatternDetector():
                 return True
             from_idx -= 1
 
-    def find_mov_ptn_in_state_history_at_idx(self, pattern_steps, state_history, shist_idx=0):
+    def find_mov_ptn_in_state_history_at_idx(self, pattern_steps, state_history, shist_idx=0, now=None):
         ptn_idx = 0
         prev_match_idx = -1
         prev_match_ts = 0
-        now = int(round(time.time()))
+        if not now:
+            now = state_history[-1].ts
 
-        while ptn_idx < len(pattern_steps) and shist_idx < len(state_history):
+        while ptn_idx < len(pattern_steps) and shist_idx < len(state_history) and state_history[shist_idx].ts <= now:
             ptn_step = pattern_steps[ptn_idx]
             shist_step: StateHistoryStep = state_history[shist_idx]
 
@@ -105,17 +107,22 @@ class PatternDetector():
                 shist_idx += 1
 
         if ptn_idx == 0 or (ptn_idx == 1 and type(pattern_steps[ptn_idx - 1]) is NotState):
-            return PatternMatch.NOT_MATCHED
+            states_to_find = [pattern_steps[ptn_idx]] if type(pattern_steps[ptn_idx ]) is not NotState else []
+            if ptn_idx == 1 and type(pattern_steps[ptn_idx - 1]):
+                states_to_find = [pattern_steps[ptn_idx], pattern_steps[ptn_idx - 1]]
+            return (PatternMatch.NOT_MATCHED, states_to_find, 0)
         elif 0 < ptn_idx <= len(pattern_steps) - 1:
             if type(pattern_steps[ptn_idx]) is NotState and ptn_idx == len((pattern_steps)) - 1 \
-                    and int(round(time.time())) - prev_match_ts > pattern_steps[ptn_idx].duration:
-                return PatternMatch.MATCHED
+                    and now - prev_match_ts > pattern_steps[ptn_idx].duration:
+                return (PatternMatch.MATCHED, [], len(pattern_steps))
             else:
-                return PatternMatch.PARTIAL_MATCH
+                states_to_find = [pattern_steps[ptn_idx], pattern_steps[ptn_idx - 1]] if type(
+                    pattern_steps[ptn_idx - 1]) is NotState else [pattern_steps[ptn_idx]]
+                return (PatternMatch.PARTIAL_MATCH, states_to_find, ptn_idx)
         else:
-            return PatternMatch.MATCHED
+            return (PatternMatch.MATCHED, [], len(pattern_steps))
 
-    def find_mov_ptn_in_state_history(self, pattern_steps, state_history):
+    def find_mov_ptn_in_state_history(self, pattern_steps, state_history, now=None):
         """
         this function takes a "pattern" and a "state history" and returns whether that pattern is found in that state history.
         the steps of the pattern can be spread across the state history, just need to be present in the same order
@@ -152,21 +159,27 @@ class PatternDetector():
         """
         shist_idx = 0
         partial_match_found = False
-        while shist_idx < len(state_history):
-            result_at_idx = self.find_mov_ptn_in_state_history_at_idx(pattern_steps, state_history, shist_idx)
-            if result_at_idx is PatternMatch.MATCHED:
-                return PatternMatch.MATCHED
-            elif result_at_idx is PatternMatch.PARTIAL_MATCH:
-                partial_match_found = True
-                shist_idx += 1
-                continue
-            elif result_at_idx is PatternMatch.NOT_MATCHED:
-                shist_idx += 1
+        all_states_to_find = {PatternMatch.MATCHED: [], PatternMatch.NOT_MATCHED: [], PatternMatch.PARTIAL_MATCH: []}
+        if len(state_history) > 0:
+            while shist_idx < len(state_history):
+                result_at_idx, states_to_find, num_steps_matched = self.find_mov_ptn_in_state_history_at_idx(pattern_steps, state_history, shist_idx, now)
+                all_states_to_find[result_at_idx].append((states_to_find, num_steps_matched))
+                if result_at_idx is PatternMatch.MATCHED:
+                    return (PatternMatch.MATCHED, all_states_to_find[PatternMatch.MATCHED][0][0])
+                elif result_at_idx is PatternMatch.PARTIAL_MATCH:
+                    partial_match_found = True
+                    shist_idx += 1
+                    continue
+                elif result_at_idx is PatternMatch.NOT_MATCHED:
+                    shist_idx += 1
 
-        if partial_match_found:
-            return PatternMatch.PARTIAL_MATCH
+            if partial_match_found:
+                return (PatternMatch.PARTIAL_MATCH, sorted(all_states_to_find[PatternMatch.PARTIAL_MATCH], key = lambda x: x[1], reverse=True)[0][0])
+            else:
+                return (PatternMatch.NOT_MATCHED, all_states_to_find[PatternMatch.NOT_MATCHED][0][0])
         else:
-            return PatternMatch.NOT_MATCHED
+            return (PatternMatch.NOT_MATCHED, [])
+
     def _can_detect(self):
         for mg in self.state_managers:
             if mg.get_current_lag() > 0:
@@ -190,12 +203,32 @@ class PatternDetector():
                             state_attrs = state_step.state_attrs
                     with self.state_history_update_lock:
                         self.state_history.clear()
-                    self.output_q.enqueue((NotificationTypes.PATTERN_DETECTED, (ptn, state_attrs)))
+                    self.output_q.enqueue((NotificationTypes.PATTERN_DETECTED, (ptn, state_attrs)), wait=True)
                 elif ptn_match_result is PatternMatch.PARTIAL_MATCH:
                     log.info(colored("pattern partial match: %s" % ptn.name, 'red'))
                     any_partial_match = True
 
             self.prune_state_history(any_partial_match)
+
+    def states_in_demand(self, ts):
+        all_states_to_find = set()
+        for (ptn, ptn_steps) in self.pattern_steps:
+            ptn_match_result, states_to_find = self.find_mov_ptn_in_state_history(ptn_steps, self.state_history, now=ts)
+            log.info("states_in_demand by [%s] pattern: %s" % (ptn, str(states_to_find)))
+            all_states_to_find.update(states_to_find)
+        return all_states_to_find
+
+    def get_state_history_till(self, now):
+        state_history_at_now = copy.deepcopy(self.state_history)
+        for state in state_history_at_now:
+            state.now = now
+        return [state_step for state_step in state_history_at_now if state_step.ts <= now]
+
+    def get_state_history_after(self, now):
+        state_history_at_now = copy.deepcopy(self.state_history)
+        for state in state_history_at_now:
+            state.now = now
+        return [state_step for state_step in state_history_at_now if state_step.ts > now]
 
     def prune_state_history(self, any_partial_match):
         with self.state_history_update_lock:

@@ -2,9 +2,12 @@ import cv2
 import imutils
 import numpy as np
 
+from detection.StateDetectorBase import StateDetectorBase
 
-class SimpleMotionDetector():
+
+class SimpleMotionDetector(StateDetectorBase):
     def __init__(self, config):
+        super().__init__()
         self.config = config
         self.bg = None
         self.total_frames = 0

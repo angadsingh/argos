@@ -4,6 +4,7 @@ from enum import Enum
 from termcolor import colored
 
 from detection.object_detector_base import BaseTFObjectDetector
+from detection.pattern_detector_task_skipper import PatternBasedSkipAheadOptimizer
 from detection.state_managers.state_manager import StateManager
 from detection.states import StateHistoryStep
 
@@ -18,6 +19,7 @@ class ObjectStateManager(StateManager):
     def __init__(self, object_detector: BaseTFObjectDetector, pattern_detector, output_q):
         super().__init__(pattern_detector, output_q)
         self.object_detector = object_detector
+        self.object_detector.task_skipper = PatternBasedSkipAheadOptimizer(pattern_detector, ObjectStates.OBJECT_DETECTED)
 
     def add_state(self, state, ts = None):
         (label, accuracy, image_path) = state

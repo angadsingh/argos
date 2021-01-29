@@ -14,7 +14,7 @@ class Config(ConfigBase):
         self.fps_print_frames = 10
         self.md_min_cont_area = 50
         self.md_tval = 25
-        self.md_bg_accum_weight = 0.2
+        self.md_bg_accum_weight = 0.5
         self.md_show_all_contours = True
         self.md_warmup_frame_count = -1
         self.md_update_bg_model = True
@@ -43,13 +43,17 @@ class Config(ConfigBase):
         self.tf_od_annotation_write = False
         self.pattern_detection_enabled = True
         self.pattern_detection_pattern_steps = door_movement.pattern_steps
-        self.pattern_detection_patter_eval_order = door_movement.pattern_evaluation_order
         self.pattern_detection_state_history_length = 200
         self.pattern_detection_state_history_length_partial = 300
-        self.pattern_detection_interval = 0
+        self.pattern_detection_interval = 1
         self.door_state_detector = SingleShotFrameDiffDoorStateDetector((215, 114, 227, 123), (196, 131, 215, 147))
         self.door_state_detector_show_detection = True
-        self.md_frame_rate = 10
+
+        # emulates real speeds of the raspberry pi 4
+        self.md_frame_rate = 5
+        self.od_frame_rate = 2
+
         self.debug_mode = False
-        self.md_blur_output_frame = True
-        self.od_blur_output_frame = True
+        self.md_blur_output_frame = False
+        self.od_blur_output_frame = False
+        self.test_show_video = False

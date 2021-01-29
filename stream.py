@@ -65,7 +65,7 @@ class StreamDetector():
             self.vs = PiVideoStream(resolution=(640, 480), framerate=30).start()
         elif self.config.input_mode == InputMode.VIDEO_FILE:
             from input.videofilestream import VideoFileStream
-            self.vs = VideoFileStream(self.config.video_file_path).start()
+            self.vs = VideoFileStream(self.config.video_file_path, self.config.video_in_sync).start()
 
         self.od.wait_for_ready()
         log.info("TFObjectDetector init END")

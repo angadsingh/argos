@@ -30,7 +30,8 @@ class MotionStateManager(StateManager):
     def add_state(self, state, ts = None):
         motion_state_label = MotionStateManager.MOTION_STATE_MAP[state]
         if motion_state_label != self.last_motion_state:
-            log.info(colored("motion state changed: %s" % str(motion_state_label), 'blue', attrs=['bold']))
-            self.pattern_detector.add_to_state_history(StateHistoryStep(motion_state_label, ts=ts))
+            history_step = StateHistoryStep(motion_state_label, ts=ts)
+            self.pattern_detector.add_to_state_history(history_step)
             self.last_motion_state = motion_state_label
-            self.output_q.enqueue((NotificationTypes.MOTION_STATE_CHANGED, (motion_state_label,)))
+            self.output_q.enqueue((NotificationTypes.MOTION_STATE_CHANGED, (motion_state_label,)), wait=True)
+            log.info(colored("motion state changed: %s" % history_step, 'blue', attrs=['bold']))

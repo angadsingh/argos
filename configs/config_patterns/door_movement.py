@@ -1,7 +1,6 @@
 from enum import Enum
 
 from detection.state_managers.door_state_manager import DoorStates
-from detection.state_managers.motion_state_manager import MotionStates
 from detection.state_managers.object_state_manager import ObjectStates
 from detection.states import NotState
 
@@ -24,10 +23,6 @@ pattern_steps = [
     (MovementPatterns.PERSON_VISITED_AT_DOOR, [ObjectStates.OBJECT_DETECTED, DoorStates.DOOR_OPEN,
                                               DoorStates.DOOR_CLOSED, ObjectStates.OBJECT_DETECTED]),
     (MovementPatterns.PERSON_EXITING_DOOR, [ObjectStates.OBJECT_DETECTED, DoorStates.DOOR_OPEN,
-                                           DoorStates.DOOR_CLOSED, NotState(ObjectStates.OBJECT_DETECTED, 5)]),
-    (MovementPatterns.PERSON_EXITING_DOOR, [MotionStates.MOTION_INSIDE_MASK, DoorStates.DOOR_OPEN,
-                                           DoorStates.DOOR_CLOSED, NotState(ObjectStates.OBJECT_DETECTED, 5)]),
-    (MovementPatterns.PERSON_EXITING_DOOR, [MotionStates.MOTION_OUTSIDE_MASK, DoorStates.DOOR_OPEN,
                                            DoorStates.DOOR_CLOSED, NotState(ObjectStates.OBJECT_DETECTED, 5)]),
     (MovementPatterns.PERSON_ENTERING_DOOR, [NotState(ObjectStates.OBJECT_DETECTED, 5),
                                             DoorStates.DOOR_OPEN, ObjectStates.OBJECT_DETECTED])

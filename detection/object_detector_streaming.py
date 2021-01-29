@@ -35,8 +35,8 @@ class StreamingTFObjectDetector(BaseTFObjectDetector):
                         cv2.FONT_HERSHEY_SIMPLEX, 0.35, (0, 255, 255), 1)
         self.output_frame.enqueue(outputFrame)
 
-    def process_detection_final(self, label, accuracy, image_path):
-        self.output_q.enqueue((NotificationTypes.OBJECT_DETECTED, (label, accuracy, image_path)))
+    def process_detection_final(self, label, accuracy, image_path, ts):
+        self.output_q.enqueue((NotificationTypes.OBJECT_DETECTED, ((label, accuracy, image_path), ts)))
 
     def generate_output_frames(self):
         self.active_video_feeds += 1

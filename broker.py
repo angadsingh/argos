@@ -22,7 +22,7 @@ class Broker():
 
     def broke(self):
         while True:
-            task = self.broker_q.dequeue()
+            task = self.broker_q.dequeue(notify=True)
             if task == -1:
                 break
             notification_type, notification_payload = task
@@ -30,7 +30,7 @@ class Broker():
                 if self.config.pattern_detection_enabled:
                     (state, ts) = notification_payload
                     self.object_state_manager.add_state(state, ts)
-            self.notify_q.enqueue((notification_type, notification_payload))
+            self.notify_q.enqueue((notification_type, notification_payload), wait=True)
 
     def stop(self):
         self.broker_q.enqueue(-1)

@@ -5,16 +5,18 @@ from colormath.color_conversions import convert_color
 from colormath.color_diff import delta_e_cmc
 from colormath.color_objects import sRGBColor, LabColor
 
+from detection.StateDetectorBase import StateDetectorBase
 from detection.state_managers.door_state_manager import DoorStates
 
 
-class DoorStateDetector(ABC):
+class DoorStateDetector(StateDetectorBase):
     def __init__(self, open_door_contour):
         """
         :param open_door_contour: the box where the door state can be detected based on color similarity
         keep it at the corner of the door where closed state will be the color of
         the wood of the door and open state will be the road/lobby behind the door
         """
+        super().__init__()
         self.open_door_contour = open_door_contour
 
     def show_detection(self, output_frame, detection):

@@ -28,8 +28,8 @@ class BlockingQueue(object):
     def read(self, timeout = None):
         with self.__cv:
             self.__cv.wait(timeout)
-        if self.__q:
-            return self.__q[-1]
+            if self.__q:
+                return self.__q[-1]
 
     def dequeue(self, notify = False):
         with self.__cv:
