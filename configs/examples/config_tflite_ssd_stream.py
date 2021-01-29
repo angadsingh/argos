@@ -120,6 +120,9 @@ class Config(ConfigBase):
         # path where above jpegs are stored
         self.tf_output_detection_path = '/home/pi/detections'
 
+        # limit the speed of the object detector (useful in testing)
+        self.od_frame_rate = -1
+
         ## PATTERN DETECTOR CONFIG
 
         # enable the movement pattern detector
