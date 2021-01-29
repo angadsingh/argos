@@ -6,6 +6,7 @@ import numpy as np
 
 from configs.constants import DetectorType
 from detection.StateDetectorBase import StateDetectorBase
+from detection.state_managers.state_manager import CommittedOffset
 from lib.blocking_q import BlockingQueue
 from lib.detection_buffer import DetectionBuffer
 from lib.fps import FPS
@@ -29,6 +30,7 @@ class BaseTFObjectDetector(StateDetectorBase):
         self.fps = FPS(600, 100)
         self.ready = False
         self.__cv = threading.Condition()
+        self.latest_committed_offset = CommittedOffset.CURRENT
 
     def start(self):
         self.t = threading.Thread(target=self.detect_continuously, args=())
@@ -169,3 +171,4 @@ class BaseTFObjectDetector(StateDetectorBase):
                 cropped_frame = np.copy(cropped_frame)
                 cropped_frame.setflags(write=1)
                 self.detect_image_buffered(frame, cropped_frame, cropOffsetX, cropOffsetY, ts)
+            self.latest_committed_offset = ts

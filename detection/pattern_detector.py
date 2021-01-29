@@ -8,7 +8,7 @@ import numpy as np
 from termcolor import colored
 
 from detection.state_managers.object_state_manager import ObjectStates
-from detection.state_managers.state_manager import StateManager
+from detection.state_managers.state_manager import StateManager, CommittedOffset
 from detection.states import NotState, StateHistoryStep
 from lib.timer import RepeatedTimer
 from notifier import NotificationTypes
@@ -76,7 +76,7 @@ class PatternDetector():
         ptn_idx = 0
         prev_match_idx = -1
         prev_match_ts = 0
-        if not now:
+        if not now or now == CommittedOffset.CURRENT:
             now = max(time.time(), state_history[-1].ts)
 
         while ptn_idx < len(pattern_steps) and shist_idx < len(state_history) and state_history[shist_idx].ts <= now:
@@ -180,30 +180,57 @@ class PatternDetector():
         else:
             return (PatternMatch.NOT_MATCHED, [])
 
-    def _can_detect(self):
+    def get_min_committed_offset_ts(self):
+        """
+        get the latest timestamp uptil which all state managers
+        have committed their state (have processed the state history
+        till that timestamp)
+        :return:
+        """
+        min_committed_offset = np.inf
+        lagging_state_managers = 0
+        lagging_mgr_frames = 0
+        now = time.time()
         for mg in self.state_managers:
-            if mg.get_current_lag() > 0:
+            mgr_offset = mg.get_latest_committed_offset()
+            mgr_current_lag = mg.get_current_lag()
+
+            if mgr_offset != CommittedOffset.CURRENT and mgr_current_lag > 0:
+                lagging_state_managers += 1
+                lagging_mgr_frames += mgr_current_lag
                 log.info(colored(
-                    "halting pattern detection till lag [%d] clears up for %s" % (
-                        mg.get_current_lag(), mg.__class__.__name__), 'white', attrs=['bold']))
-                return False
-        return True
+                    "state manager [%s] lagging by [%.2f] seconds and [%d] frames" % (
+                        mg.__class__.__name__, now - mgr_offset, mgr_current_lag), 'white', attrs=['bold']))
+                if mgr_offset < min_committed_offset:
+                    min_committed_offset = mgr_offset
+
+        if min_committed_offset is np.inf:
+            min_committed_offset = CommittedOffset.CURRENT
+        else:
+            log.info(colored(
+                "pattern detection lagging by [%.2f] seconds due to %d state managers lagging by [%d] frames" % (
+                    now - min_committed_offset, lagging_state_managers, lagging_mgr_frames), 'white', attrs=['bold']))
+
+        return min_committed_offset
 
     def detect_patterns(self):
-        if self._can_detect():
+        if len(self.state_history) > 0:
+            min_committed_offset_ts = self.get_min_committed_offset_ts()
             any_partial_match = False
-            if len(self.state_history) > 0:
-                log.info(colored("stateHistory: %s" % str(self.state_history), 'white'))
+            state_history_till_ts = self.get_state_history_till(min_committed_offset_ts)
+            state_history_after_ts = self.get_state_history_after(min_committed_offset_ts)
+            log.info("%s, %s " % (
+                colored("state history seen by pattern detector: %s" % state_history_till_ts, 'white', attrs=['bold']),
+                colored(state_history_after_ts, 'white')))
             for (ptn, ptn_steps) in self.pattern_steps:
-                ptn_match_result, states_to_find = self.find_mov_ptn_in_state_history(ptn_steps, self.state_history)
+                ptn_match_result, states_to_find = self.find_mov_ptn_in_state_history(ptn_steps, self.state_history, now=min_committed_offset_ts)
                 if ptn_match_result is PatternMatch.MATCHED:
                     log.info(colored("pattern detected: %s" % ptn.name, 'red', attrs=['bold']))
                     state_attrs = None
                     for state_step in self.state_history:
                         if state_step.state == ObjectStates.OBJECT_DETECTED:
                             state_attrs = state_step.state_attrs
-                    with self.state_history_update_lock:
-                        self.state_history.clear()
+                    self.clear_state_history_till(min_committed_offset_ts)
                     self.output_q.enqueue((NotificationTypes.PATTERN_DETECTED, (ptn, state_attrs)), wait=True)
                 elif ptn_match_result is PatternMatch.PARTIAL_MATCH:
                     log.info(colored("pattern partial match: %s" % ptn.name, 'red'))
@@ -219,17 +246,34 @@ class PatternDetector():
             all_states_to_find.update(states_to_find)
         return all_states_to_find
 
+    def clear_state_history_till(self, now):
+        with self.state_history_update_lock:
+            if now != CommittedOffset.CURRENT:
+                new_state_history = []
+                for i in range(0, len(self.state_history)):
+                    if self.state_history[i].ts > now:
+                        new_state_history.append(self.state_history[i])
+                self.state_history = new_state_history
+            else:
+                self.state_history.clear()
+
     def get_state_history_till(self, now):
-        state_history_at_now = copy.deepcopy(self.state_history)
-        for state in state_history_at_now:
-            state.now = now
-        return [state_step for state_step in state_history_at_now if state_step.ts <= now]
+        if now != CommittedOffset.CURRENT:
+            state_history_at_now = copy.deepcopy(self.state_history)
+            for state in state_history_at_now:
+                state.now = now
+            return [state_step for state_step in state_history_at_now if state_step.ts <= now]
+        else:
+            return self.state_history
 
     def get_state_history_after(self, now):
-        state_history_at_now = copy.deepcopy(self.state_history)
-        for state in state_history_at_now:
-            state.now = now
-        return [state_step for state_step in state_history_at_now if state_step.ts > now]
+        if now != CommittedOffset.CURRENT:
+            state_history_at_now = copy.deepcopy(self.state_history)
+            for state in state_history_at_now:
+                state.now = now
+            return [state_step for state_step in state_history_at_now if state_step.ts > now]
+        else:
+            return []
 
     def prune_state_history(self, any_partial_match):
         with self.state_history_update_lock:

@@ -116,17 +116,13 @@ class TestArgosStream(unittest.TestCase):
 
                 cv2.waitKey(1)
 
-        while sd.wait_for_completion(0.1):
+        while sd.wait_for_completion(0.1) or not mb.object_state_manager.object_detector.input_frame.wait_for_empty(0.1):
             if mock_notifier.patterns_found:
                 sd.stop()
                 mb.stop()
                 pattern_detector.stop()
                 self.assertTrue(mock_notifier.patterns_found)
                 return
-
-        if mb.object_state_manager.get_current_lag() > 0:
-            log.info(colored("waiting for the object detector to finish..", "yellow"))
-            mb.object_state_manager.object_detector.input_frame.wait_for_empty()
 
         sd.stop()
 

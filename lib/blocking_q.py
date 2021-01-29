@@ -45,10 +45,11 @@ class BlockingQueue(object):
                 self.__cv.notifyAll()
             return element
 
-    def wait_for_empty(self):
+    def wait_for_empty(self, timeout = None):
         with self.__cv:
-            while len(self.__q) > 0:
-                self.__cv.wait()
+            if len(self.__q) > 0:
+                self.__cv.wait(timeout)
+            return len(self.__q) == 0
 
     def notify(self):
         self.__cv.notifyAll()

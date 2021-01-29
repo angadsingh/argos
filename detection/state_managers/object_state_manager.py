@@ -1,4 +1,5 @@
 import logging
+import time
 from enum import Enum
 
 from termcolor import colored
@@ -28,6 +29,9 @@ class ObjectStateManager(StateManager):
             history_step, avoid_duplicates = True)
         if added:
             log.info(colored("object state changed: %s" % history_step, 'blue', attrs=['bold']))
+
+    def get_latest_committed_offset(self):
+        return self.object_detector.latest_committed_offset
 
     def get_current_lag(self):
         return self.object_detector.input_frame.size()
