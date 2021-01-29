@@ -7,6 +7,7 @@ from termcolor import colored
 
 from lib.blocking_q import BlockingQueue
 from lib.fps import FPS
+from lib.framelimiter import FrameLimiter
 
 log = logging.getLogger(__name__)
 
@@ -32,7 +33,8 @@ class VideoFileStream:
         return self
 
     def update(self):
-        while self.vcap.isOpened() and not self.stopped:
+        limiter = FrameLimiter(self.video_fps if not self.in_sync else 0)
+        while limiter.limit() and self.vcap.isOpened() and not self.stopped:
             ret, frame = self.vcap.read()
             if not ret:
                 log.info(colored('Reached the end of the video! [%s seconds]' % str(round(int(
@@ -41,16 +43,17 @@ class VideoFileStream:
             else:
                 self.frame_singleton.enqueue(frame, wait=self.in_sync)
                 self.fps.count()
-                if not self.in_sync:
-                    time.sleep(1 / self.video_fps)
 
         self.stopped = True
+        self.frame_singleton.enqueue(-1, wait=self.in_sync)
         self.vcap.release()
         self.fps.stop()
 
     def read(self):
         # return the frame most recently read
-        return self.frame_singleton.dequeue(notify=True)
+        frame = self.frame_singleton.dequeue(notify=True)
+        if frame is not -1:
+            return frame
 
     def stop(self):
         self.stopped = True

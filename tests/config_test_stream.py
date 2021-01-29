@@ -29,7 +29,7 @@ class Config(ConfigBase):
 
         self.tf_model_path = '../tf_models/tflite/coco_ssd_mobilenet_v1_1.0_quant/detect.tflite'
         self.tf_path_to_labelmap = '../tf_models/tflite/coco_ssd_mobilenet_v1_1.0_quant/labelmap.txt'
-        self.tf_accuracy_threshold = 0.4
+        self.tf_accuracy_threshold = 0.5
         self.tf_detection_labels = ['person', 'dog']
         self.tf_detection_masks = None
         self.tf_detection_nmasks = None
@@ -39,7 +39,8 @@ class Config(ConfigBase):
         self.tf_detection_buffer_threshold = 4
         self.tf_detector_type = DetectorType.TFLITE
         self.tf_apply_md = True
-        self.tf_od_frame_write = False
+        self.tf_od_frame_write = True
+        self.tf_output_detection_path = './data/detections'
         self.tf_od_annotation_write = False
         self.pattern_detection_enabled = True
         self.pattern_detection_pattern_steps = door_movement.pattern_steps

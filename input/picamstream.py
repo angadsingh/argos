@@ -59,6 +59,7 @@ class PiVideoStream:
             log.error(e)
             self.stopped = True
 
+        self.frame_singleton.enqueue(-1)
         self.stream.close()
         self.rawCapture.close()
         self.camera.close()
@@ -66,7 +67,9 @@ class PiVideoStream:
 
     def read(self):
         # return the frame most recently read
-        return self.frame_singleton.dequeue()
+        frame = self.frame_singleton.dequeue()
+        if frame is not -1:
+            return frame
 
     def stop(self):
         # indicate that the thread should be stopped

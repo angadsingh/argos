@@ -11,6 +11,11 @@ class BlockingQueue(object):
         self.__q = collections.deque()
         self.max_size = max_size
 
+    def abrupt_stop(self, stop_element):
+        with self.__cv:
+            self.__q.appendleft(stop_element)
+            self.__cv.notifyAll()
+
     def enqueue(self, element, wait = False):
         """
         :type element: int
@@ -44,6 +49,9 @@ class BlockingQueue(object):
         with self.__cv:
             while len(self.__q) > 0:
                 self.__cv.wait()
+
+    def notify(self):
+        self.__cv.notifyAll()
 
     def size(self):
         """

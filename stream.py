@@ -10,6 +10,7 @@ from detection.object_detector_streaming import StreamingTFObjectDetector
 from detection.pattern_detector import PatternDetector
 from detection.state_managers.door_state_manager import DoorStateManager
 from detection.state_managers.motion_state_manager import MotionStateManager
+from lib.framelimiter import FrameLimiter
 
 for _ in ("colormath.color_conversions", "colormath.color_objects"):
     logging.getLogger(_).setLevel(logging.CRITICAL)
@@ -76,14 +77,15 @@ class StreamDetector():
         self.t.daemon = True
         self.t.start()
 
-    def wait_for_completion(self):
-        self.t.join()
+    def wait_for_completion(self, timeout=None):
+        self.t.join(timeout=timeout)
+        return self.t.is_alive()
 
     def stop(self):
         self.stopped = True
+        self.vs.stop()
         if self.t.is_alive():
             self.t.join()
-        self.vs.stop()
         self.od.stop()
 
     def draw_masks(self, frame):
@@ -97,7 +99,8 @@ class StreamDetector():
         fps = FPS(50, 100)
 
         # loop over frames from the video stream
-        while not self.vs.stopped and not self.stopped:
+        limiter = FrameLimiter(self.config.md_frame_rate)
+        while limiter.limit() and not self.vs.stopped and not self.stopped:
             frame = self.vs.read()
             if frame is not None:
                 output_frame = frame.copy()
@@ -136,8 +139,6 @@ class StreamDetector():
             else:
                 log.info("frame is NONE")
 
-            if self.config.md_frame_rate > 0:
-                time.sleep(1 / self.config.md_frame_rate)
             if self.config.debug_mode:
                 ch = getch()
                 if ch == 'q':
@@ -150,9 +151,8 @@ class StreamDetector():
         current_feed_num = self.active_video_feeds
         # loop over frames from the output stream
         try:
-            while True:
-                if self.config.video_feed_fps > 0:
-                    time.sleep(1 / self.config.video_feed_fps)
+            limiter = FrameLimiter(self.config.video_feed_fps)
+            while limiter.limit():
                 output_frame = self.outputFrame.read()
                 # encode the frame in JPEG format
                 (flag, encodedImage) = cv2.imencode(".jpg", output_frame)

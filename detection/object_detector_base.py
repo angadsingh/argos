@@ -12,6 +12,9 @@ from lib.fps import FPS
 from termcolor import colored
 
 import logging
+
+from lib.framelimiter import FrameLimiter
+
 log = logging.getLogger(__name__)
 
 class BaseTFObjectDetector(StateDetectorBase):
@@ -34,7 +37,7 @@ class BaseTFObjectDetector(StateDetectorBase):
         return self
 
     def stop(self):
-        self.input_frame.enqueue(-1, wait=True)
+        self.input_frame.abrupt_stop(-1)
         self.t.join()
         self.fps.stop()
 
@@ -154,16 +157,15 @@ class BaseTFObjectDetector(StateDetectorBase):
     def detect_continuously(self):
         self.initialize_tf_model()
 
+        limiter = FrameLimiter(self.config.od_frame_rate)
         while True:
             task = self.input_frame.dequeue(notify=True)
             if task == -1:
                 break
             (frame, cropped_frame, (cropOffsetX, cropOffsetY), ts) = task
             if not self.task_skipper.skip_task(ts):
+                limiter.limit()
                 self.fps.count()
                 cropped_frame = np.copy(cropped_frame)
                 cropped_frame.setflags(write=1)
                 self.detect_image_buffered(frame, cropped_frame, cropOffsetX, cropOffsetY, ts)
-
-                if self.config.od_frame_rate > 0:
-                    time.sleep(1 / self.config.od_frame_rate)

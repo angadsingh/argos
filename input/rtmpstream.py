@@ -39,12 +39,15 @@ class RTMPVideoStream:
                 total += 1
 
         self.stopped = True
+        self.frame_singleton.enqueue(-1)
         self.vcap.release()
         self.fps.stop()
 
     def read(self):
         # return the frame most recently read
-        return self.frame_singleton.dequeue()
+        frame = self.frame_singleton.dequeue()
+        if frame is not -1:
+            return frame
 
     def stop(self):
         self.stopped = True
