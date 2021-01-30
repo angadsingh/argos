@@ -123,6 +123,10 @@ class Config(ConfigBase):
         # limit the speed of the object detector (useful in testing)
         self.od_frame_rate = -1
 
+        # size of the task queue between the motion detector and object detector threads
+        # increasing this will cause more lagged detection
+        self.od_task_q_size = 1000
+
         ## PATTERN DETECTOR CONFIG
 
         # enable the movement pattern detector

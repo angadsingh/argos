@@ -5,7 +5,7 @@ from threading import Thread
 import cv2
 from termcolor import colored
 
-from lib.blocking_q import BlockingQueue
+from lib.task_queue import BlockingTaskSingleton, NonBlockingTaskSingleton
 from lib.fps import FPS
 from lib.framelimiter import FrameLimiter
 
@@ -24,7 +24,11 @@ class VideoFileStream:
         self.in_sync = in_sync
         if not self.in_sync:
             log.info("playing at original video fps of file [%s]: %s" % (file, self.video_fps))
-        self.frame_singleton = BlockingQueue()
+
+        if self.in_sync:
+            self.output_frame = BlockingTaskSingleton()
+        else:
+            self.output_frame = NonBlockingTaskSingleton()
 
     def start(self):
         self.t = Thread(target=self.update, args=())
@@ -41,17 +45,17 @@ class VideoFileStream:
                     self.vcap.get(cv2.CAP_PROP_FRAME_COUNT)) / self.video_fps)), 'magenta', attrs=['bold']))
                 break
             else:
-                self.frame_singleton.enqueue(frame, wait=self.in_sync)
+                self.output_frame.enqueue(frame)
                 self.fps.count()
 
         self.stopped = True
-        self.frame_singleton.enqueue(-1, wait=self.in_sync)
+        self.output_frame.enqueue(-1)
         self.vcap.release()
         self.fps.stop()
 
     def read(self):
         # return the frame most recently read
-        frame = self.frame_singleton.dequeue(notify=True)
+        frame = self.output_frame.dequeue()
         if frame is not -1:
             return frame
 

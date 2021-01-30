@@ -6,6 +6,7 @@ from termcolor import colored
 from lib.ha_mqtt import HaMQTT
 
 from lib.ha_webhook import HaWebHook
+from lib.task_queue import BlockingTaskSingleton
 from lib.timer import RepeatedTimer
 import logging
 log = logging.getLogger(__name__)
@@ -18,7 +19,7 @@ class NotificationTypes(Enum):
 
 
 class Notifier():
-    def __init__(self, config, notify_q):
+    def __init__(self, config, notify_q: BlockingTaskSingleton):
         self.notify_q = notify_q
         self.config = config
         if self.config.send_mqtt:

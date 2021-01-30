@@ -7,7 +7,7 @@ import numpy as np
 from configs.constants import DetectorType
 from detection.StateDetectorBase import StateDetectorBase
 from detection.state_managers.state_manager import CommittedOffset
-from lib.blocking_q import BlockingQueue
+from lib.task_queue import BlockingTaskQueue
 from lib.detection_buffer import DetectionBuffer
 from lib.fps import FPS
 from termcolor import colored
@@ -22,7 +22,7 @@ class BaseTFObjectDetector(StateDetectorBase):
     def __init__(self, config):
         super().__init__()
         self.config = config
-        self.input_frame = BlockingQueue(max_size=1000)
+        self.input_frame_q = BlockingTaskQueue(max_size=self.config.od_task_q_size)
 
         if self.config.tf_detection_buffer_enabled:
             self.detection_buffer = DetectionBuffer(config.tf_detection_buffer_duration,
@@ -39,7 +39,7 @@ class BaseTFObjectDetector(StateDetectorBase):
         return self
 
     def stop(self):
-        self.input_frame.abrupt_stop(-1)
+        self.input_frame_q.abrupt_stop(-1)
         self.t.join()
         self.fps.stop()
 
@@ -63,7 +63,7 @@ class BaseTFObjectDetector(StateDetectorBase):
             return self.ready
 
     def add_task(self, task):
-        self.input_frame.enqueue(task, wait=True)
+        self.input_frame_q.enqueue(task)
 
     def apply_od_filters(self, det_boxes, accuracy_threshold=None, box_thresholds=None, masks=None, nmasks=None):
         accuracy_threshold = self.config.tf_accuracy_threshold if accuracy_threshold is None else accuracy_threshold
@@ -161,7 +161,7 @@ class BaseTFObjectDetector(StateDetectorBase):
 
         limiter = FrameLimiter(self.config.od_frame_rate)
         while True:
-            task = self.input_frame.dequeue(notify=True)
+            task = self.input_frame_q.dequeue()
             if task == -1:
                 break
             (frame, cropped_frame, (cropOffsetX, cropOffsetY), ts) = task

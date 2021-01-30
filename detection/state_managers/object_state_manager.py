@@ -17,8 +17,8 @@ class ObjectStates(Enum):
 
 
 class ObjectStateManager(StateManager):
-    def __init__(self, object_detector: BaseTFObjectDetector, pattern_detector, output_q):
-        super().__init__(pattern_detector, output_q)
+    def __init__(self, object_detector: BaseTFObjectDetector, pattern_detector, broker_q):
+        super().__init__(pattern_detector, broker_q)
         self.object_detector = object_detector
         self.object_detector.task_skipper = PatternBasedSkipAheadOptimizer(pattern_detector, ObjectStates.OBJECT_DETECTED)
 
@@ -34,4 +34,4 @@ class ObjectStateManager(StateManager):
         return self.object_detector.latest_committed_offset
 
     def get_current_lag(self):
-        return self.object_detector.input_frame.size()
+        return self.object_detector.input_frame_q.size()

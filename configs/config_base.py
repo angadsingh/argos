@@ -30,6 +30,7 @@ class ConfigBase:
         self.od_blur_output_frame = False
 
         self.od_frame_rate = -1
+        self.od_task_q_size = 1000
         self.tf_model_path = None
         self.tf_path_to_labelmap = None
         self.tf_accuracy_threshold = 0

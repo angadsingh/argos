@@ -1,16 +1,18 @@
 from abc import ABC, abstractmethod
 from enum import Enum
 
+from lib.task_queue import BlockingTaskSingleton
+
 
 class CommittedOffset(Enum):
     CURRENT = 0
 
 class StateManager(ABC):
 
-    def __init__(self, pattern_detector, output_q):
+    def __init__(self, pattern_detector, broker_q):
         self.pattern_detector = pattern_detector
         self.pattern_detector.register_state_manager(self)
-        self.output_q = output_q
+        self.broker_q: BlockingTaskSingleton = broker_q
 
     @abstractmethod
     def add_state(self, state, ts=None):

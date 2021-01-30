@@ -10,6 +10,7 @@ from termcolor import colored
 from detection.state_managers.object_state_manager import ObjectStates
 from detection.state_managers.state_manager import StateManager, CommittedOffset
 from detection.states import NotState, StateHistoryStep
+from lib.task_queue import BlockingTaskSingleton
 from lib.timer import RepeatedTimer
 from notifier import NotificationTypes
 
@@ -30,9 +31,9 @@ class PatternMatch(Enum):
 
 
 class PatternDetector():
-    def __init__(self, output_q, pattern_steps, state_history_length=20,
+    def __init__(self, broker_q: BlockingTaskSingleton, pattern_steps, state_history_length=20,
                  state_history_length_partial=300, detection_interval=1):
-        self.output_q = output_q
+        self.broker_q = broker_q
         self.pattern_steps = pattern_steps
         self.state_history = []
         self.state_history_length = state_history_length
@@ -231,7 +232,7 @@ class PatternDetector():
                         if state_step.state == ObjectStates.OBJECT_DETECTED:
                             state_attrs = state_step.state_attrs
                     self.clear_state_history_till(min_committed_offset_ts)
-                    self.output_q.enqueue((NotificationTypes.PATTERN_DETECTED, (ptn, state_attrs)), wait=True)
+                    self.broker_q.enqueue((NotificationTypes.PATTERN_DETECTED, (ptn, state_attrs)))
                 elif ptn_match_result is PatternMatch.PARTIAL_MATCH:
                     log.info(colored("pattern partial match: %s" % ptn.name, 'red'))
                     any_partial_match = True

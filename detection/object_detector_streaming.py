@@ -4,15 +4,15 @@ import pascal_voc_writer
 import cv2
 
 from detection.object_detector_base import BaseTFObjectDetector
-from lib.blocking_q import BlockingQueue
+from lib.task_queue import BlockingTaskSingleton, NonBlockingTaskSingleton
 from notifier import NotificationTypes
 
 
 class StreamingTFObjectDetector(BaseTFObjectDetector):
-    def __init__(self, config, output_q):
+    def __init__(self, config, broker_q: BlockingTaskSingleton):
         super().__init__(config)
-        self.output_q = output_q
-        self.output_frame = BlockingQueue()
+        self.broker_q = broker_q
+        self.output_video_frame_q = NonBlockingTaskSingleton()
         self.active_video_feeds = 0
 
     def process_detection_intermeddiate(self, frame, orig_box, image_path):
@@ -33,16 +33,16 @@ class StreamingTFObjectDetector(BaseTFObjectDetector):
         if self.config.show_fps:
             cv2.putText(outputFrame, "%.2f fps" % self.fps.fps, (10, outputFrame.shape[0] - 10),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.35, (0, 255, 255), 1)
-        self.output_frame.enqueue(outputFrame)
+        self.output_video_frame_q.enqueue(outputFrame)
 
     def process_detection_final(self, label, accuracy, image_path, ts):
-        self.output_q.enqueue((NotificationTypes.OBJECT_DETECTED, ((label, accuracy, image_path), ts)))
+        self.broker_q.enqueue((NotificationTypes.OBJECT_DETECTED, ((label, accuracy, image_path), ts)))
 
     def generate_output_frames(self):
         self.active_video_feeds += 1
         try:
             while True:
-                outputFrame = self.output_frame.read(timeout=2)
+                outputFrame = self.output_video_frame_q.read(timeout=2)
                 if outputFrame is not None:
                     # encode the frame in JPEG format
                     (flag, encodedImage) = cv2.imencode(".jpg", outputFrame)

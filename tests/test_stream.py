@@ -2,6 +2,7 @@ import glob
 import logging
 import os
 import subprocess
+import threading
 import time
 import unittest
 
@@ -15,7 +16,7 @@ from configs.constants import InputMode
 from detection.object_detector_streaming import StreamingTFObjectDetector
 from detection.pattern_detector import PatternDetector
 from detection.states import StateHistoryStep
-from lib.blocking_q import BlockingQueue
+from lib.task_queue import BlockingTaskSingleton
 from notifier import Notifier, NotificationTypes
 from stream import StreamDetector
 from tests import config_test_stream
@@ -32,7 +33,7 @@ class MockNotifier(Notifier):
 
     def listen_notify_q(self):
         while True:
-            task = self.notify_q.dequeue(notify=True)
+            task = self.notify_q.dequeue()
             if task == -1:
                 break
             notification_type, notification_payload = task
@@ -90,8 +91,8 @@ class TestArgosStream(unittest.TestCase):
         cls = self.__class__
         cls.config.video_file_path = './data/door_pattern_videos/%s' % video_file
 
-        broker_q = BlockingQueue()
-        notify_q = BlockingQueue()
+        broker_q = BlockingTaskSingleton()
+        notify_q = BlockingTaskSingleton()
         mock_notifier = MockNotifier(cls.config, notify_q, expected_patterns)
 
         pattern_detector = PatternDetector(broker_q, cls.config.pattern_detection_pattern_steps,
@@ -106,7 +107,7 @@ class TestArgosStream(unittest.TestCase):
 
         if cls.config.test_show_video:
             while not sd.vs.stopped:
-                frame = sd.outputFrame.read(timeout=0.01)
+                frame = sd.output_video_frame_q.read(timeout=0.01)
                 if frame is not None:
                     cv2.imshow(cls.md_window_name, frame)
 
@@ -116,7 +117,7 @@ class TestArgosStream(unittest.TestCase):
 
                 cv2.waitKey(1)
 
-        while sd.wait_for_completion(0.1) or not mb.object_state_manager.object_detector.input_frame.wait_for_empty(0.1):
+        while sd.wait_for_completion(0.1) or not mb.object_state_manager.object_detector.input_frame_q.wait_for_empty(0.1):
             if mock_notifier.patterns_found:
                 sd.stop()
                 mb.stop()
@@ -139,5 +140,10 @@ class TestArgosStream(unittest.TestCase):
 
         mb.stop()
         pattern_detector.stop()
+
+        for thread in threading.enumerate():
+            print(thread.name)
+            if thread.ident != threading.currentThread().ident:
+                thread.join()
 
         self.assertTrue(mock_notifier.patterns_found)

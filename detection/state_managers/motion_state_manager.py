@@ -23,8 +23,8 @@ class MotionStateManager(StateManager):
         None: MotionStates.NO_MOTION
     }
 
-    def __init__(self, pattern_detector, output_q):
-        super().__init__(pattern_detector, output_q)
+    def __init__(self, pattern_detector, broker_q):
+        super().__init__(pattern_detector, broker_q)
         self.last_motion_state = None
 
     def add_state(self, state, ts = None):
@@ -33,5 +33,5 @@ class MotionStateManager(StateManager):
             history_step = StateHistoryStep(motion_state_label, ts=ts)
             self.pattern_detector.add_to_state_history(history_step)
             self.last_motion_state = motion_state_label
-            self.output_q.enqueue((NotificationTypes.MOTION_STATE_CHANGED, (motion_state_label,)), wait=True)
+            self.broker_q.enqueue((NotificationTypes.MOTION_STATE_CHANGED, (motion_state_label,)))
             log.info(colored("motion state changed: %s" % history_step, 'blue', attrs=['bold']))

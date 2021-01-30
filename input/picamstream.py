@@ -6,7 +6,7 @@ from picamera import PiCamera
 from picamera.array import PiRGBArray
 
 from lib.fps import FPS
-from lib.blocking_q import BlockingQueue
+from lib.task_queue import NonBlockingTaskSingleton
 
 log = logging.getLogger(__name__)
 
@@ -33,7 +33,7 @@ class PiVideoStream:
         self.stopped = False
 
         self.fps = FPS(50, 100)
-        self.frame_singleton = BlockingQueue()
+        self.output_frame = NonBlockingTaskSingleton()
 
     def start(self):
         # start the thread to read frames from the video stream
@@ -49,7 +49,7 @@ class PiVideoStream:
             for f in self.stream:
                 # grab the frame from the stream and clear the stream in
                 # preparation for the next frame
-                self.frame_singleton.enqueue(f.array)
+                self.output_frame.enqueue(f.array)
                 self.fps.count()
                 self.rawCapture.truncate(0)
 
@@ -59,7 +59,7 @@ class PiVideoStream:
             log.error(e)
             self.stopped = True
 
-        self.frame_singleton.enqueue(-1)
+        self.output_frame.enqueue(-1)
         self.stream.close()
         self.rawCapture.close()
         self.camera.close()
@@ -67,7 +67,7 @@ class PiVideoStream:
 
     def read(self):
         # return the frame most recently read
-        frame = self.frame_singleton.dequeue()
+        frame = self.output_frame.dequeue()
         if frame is not -1:
             return frame
 

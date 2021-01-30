@@ -36,7 +36,7 @@ from flask import render_template
 from flask import request
 
 from lib.fps import FPS
-from lib.blocking_q import BlockingQueue
+from lib.task_queue import BlockingTaskSingleton, NonBlockingTaskSingleton
 from flask_classful import route
 
 log.info("package import END")
@@ -44,13 +44,13 @@ log.info("package import END")
 
 class StreamDetector():
     def __init__(self, config, object_detector: BaseTFObjectDetector, pattern_detector: PatternDetector):
-        self.outputFrame = BlockingQueue()
+        self.output_video_frame_q = NonBlockingTaskSingleton()
         self.active_video_feeds = 0
         self.config = config
         self.od = object_detector
         self.pattern_detector = pattern_detector
-        self.door_state_manager = DoorStateManager(pattern_detector, pattern_detector.output_q)
-        self.motion_state_manager = MotionStateManager(pattern_detector, pattern_detector.output_q)
+        self.door_state_manager = DoorStateManager(pattern_detector, pattern_detector.broker_q)
+        self.motion_state_manager = MotionStateManager(pattern_detector, pattern_detector.broker_q)
         self.motion_detector = SimpleMotionDetector(config)
         self.stopped = False
 
@@ -134,7 +134,7 @@ class StreamDetector():
                                 "od=%.2f/md=%.2f/st=%.2f fps" % (self.od.fps.fps, fps.fps, self.vs.fps.fps),
                                 (10, output_frame.shape[0] - 10),
                                 cv2.FONT_HERSHEY_SIMPLEX, 0.35, (0, 255, 255), 1)
-                self.outputFrame.enqueue(output_frame)
+                self.output_video_frame_q.enqueue(output_frame)
 
             else:
                 log.info("frame is NONE")
@@ -153,7 +153,7 @@ class StreamDetector():
         try:
             limiter = FrameLimiter(self.config.video_feed_fps)
             while limiter.limit():
-                output_frame = self.outputFrame.read()
+                output_frame = self.output_video_frame_q.read()
                 # encode the frame in JPEG format
                 (flag, encodedImage) = cv2.imencode(".jpg", output_frame)
                 # ensure the frame was successfully encoded
@@ -209,7 +209,7 @@ class StreamDetectorView(DetectorView):
 
     @route("/image")
     def image(self):
-        (flag, encodedImage) = cv2.imencode(".jpg", self.sd.outputFrame.read())
+        (flag, encodedImage) = cv2.imencode(".jpg", self.sd.output_video_frame_q.read())
         return Response(bytearray(encodedImage),
                         mimetype='image/jpeg')
 
@@ -236,8 +236,8 @@ if __name__ == '__main__':
 
     m = importlib.import_module(args["config"])
     config = getattr(m, "Config")()
-    broker_q = BlockingQueue()
-    notify_q = BlockingQueue()
+    broker_q = BlockingTaskSingleton()
+    notify_q = BlockingTaskSingleton()
     pattern_detector = None
     if config.pattern_detection_enabled:
         pattern_detector = PatternDetector(broker_q, config.pattern_detection_pattern_steps,

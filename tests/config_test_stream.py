@@ -40,6 +40,7 @@ class Config(ConfigBase):
         self.tf_detector_type = DetectorType.TFLITE
         self.tf_apply_md = True
         self.tf_od_frame_write = True
+        self.od_task_q_size = 1000
         self.tf_output_detection_path = './data/detections'
         self.tf_od_annotation_write = False
         self.pattern_detection_enabled = True
