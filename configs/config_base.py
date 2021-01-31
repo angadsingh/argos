@@ -1,6 +1,7 @@
 import numpy
 
 from configs.constants import InputMode, DetectorType
+from notifier import NotificationTypes
 
 
 class ConfigBase:
@@ -69,6 +70,13 @@ class ConfigBase:
         self.mqtt_port = None
         self.mqtt_username = None
         self.mqtt_password = None
+        self.notifier_queue_size = 1000
+        self.notifier_rate_limits = {
+            NotificationTypes.OBJECT_DETECTED: 1,
+            NotificationTypes.PATTERN_DETECTED: 0,
+            NotificationTypes.DOOR_STATE_CHANGED: 0,
+            NotificationTypes.MOTION_STATE_CHANGED: 1
+        }
         self.input_mode = None
         self.rtmp_stream_url = None
         self.video_file_path = None

@@ -1,7 +1,16 @@
-import importlib
 import logging
-import sys
 
+from appmetrics import reporter, metrics
+
+from lib import setup_logging
+
+setup_logging()
+
+log = logging.getLogger(__name__)
+
+log.info("package import START")
+
+import importlib
 import jsonpickle
 
 from detection.motion_detector import SimpleMotionDetector
@@ -12,13 +21,6 @@ from detection.state_managers.door_state_manager import DoorStateManager
 from detection.state_managers.motion_state_manager import MotionStateManager
 from lib.framelimiter import FrameLimiter
 
-for _ in ("colormath.color_conversions", "colormath.color_objects"):
-    logging.getLogger(_).setLevel(logging.CRITICAL)
-logging.basicConfig(stream=sys.stdout, level=logging.INFO, format="%(asctime)s:%(levelname)s:%(name)s:%(message)s",
-                    datefmt='%Y-%m-%d %H:%M:%S')
-log = logging.getLogger(__name__)
-
-log.info("package import START")
 from base_detector import DetectorView
 from broker import Broker
 from configs.constants import InputMode
@@ -36,7 +38,7 @@ from flask import render_template
 from flask import request
 
 from lib.fps import FPS
-from lib.task_queue import BlockingTaskSingleton, NonBlockingTaskSingleton
+from lib.task_queue import BlockingTaskSingleton, NonBlockingTaskSingleton, BlockingTaskQueue
 from flask_classful import route
 
 log.info("package import END")
@@ -178,12 +180,11 @@ class StreamDetectorView(DetectorView):
 
     @route('/status')
     def status(self):
-        return jsonify(
-            {
+        return jsonify ({
                 'active_video_feeds': self.sd.active_video_feeds,
                 'od_active_video_feeds': self.sd.od.active_video_feeds,
-            }
-        )
+                'appmetrics': metrics.metrics_by_name_list(metrics.metrics())
+            })
 
     @route('/config')
     def apiconfig(self):
@@ -236,8 +237,8 @@ if __name__ == '__main__':
 
     m = importlib.import_module(args["config"])
     config = getattr(m, "Config")()
-    broker_q = BlockingTaskSingleton()
-    notify_q = BlockingTaskSingleton()
+    broker_q = BlockingTaskSingleton(metric_prefix='broker_q')
+    notify_q = BlockingTaskQueue(config.notifier_queue_size, metric_prefix='notifier_q')
     pattern_detector = None
     if config.pattern_detection_enabled:
         pattern_detector = PatternDetector(broker_q, config.pattern_detection_pattern_steps,
@@ -250,6 +251,9 @@ if __name__ == '__main__':
 
     log.info("flask init..")
     app = Flask(__name__)
+    def stdout_report(metrics):
+        log.info(metrics)
+    reporter.register(stdout_report, reporter.fixed_interval_scheduler(30))
     StreamDetectorView.register(app, init_argument=sd, route_base='/')
     f = threading.Thread(target=app.run, kwargs={'host': args["ip"], 'port': args["port"], 'debug': False,
                                                  'threaded': True, 'use_reloader': False})

@@ -1,13 +1,14 @@
 import threading
 from enum import Enum
 
+import token_bucket
 from termcolor import colored
 
 from lib.ha_mqtt import HaMQTT
 
 from lib.ha_webhook import HaWebHook
-from lib.task_queue import BlockingTaskSingleton
 from lib.timer import RepeatedTimer
+
 import logging
 log = logging.getLogger(__name__)
 
@@ -19,7 +20,7 @@ class NotificationTypes(Enum):
 
 
 class Notifier():
-    def __init__(self, config, notify_q: BlockingTaskSingleton):
+    def __init__(self, config, notify_q):
         self.notify_q = notify_q
         self.config = config
         if self.config.send_mqtt:
@@ -40,6 +41,7 @@ class Notifier():
             NotificationTypes.MOTION_STATE_CHANGED: self.notify_state_detected,
             NotificationTypes.DOOR_STATE_CHANGED: self.notify_state_detected
         }
+        self.notification_rate_limiters = {}
         self.t = threading.Thread(target=self.listen_notify_q)
         self.t.daemon = True
         self.t.start()
@@ -73,13 +75,30 @@ class Notifier():
         elif self.config.send_webhook:
             self.ha_webhook_ot.send(str(state))
 
+    def can_notify(self, notification_type):
+        if notification_type in self.config.notifier_rate_limits:
+            notif_rate_limit = self.config.notifier_rate_limits[notification_type]
+            if notif_rate_limit >= 1:
+                if notification_type not in self.notification_rate_limiters:
+                    storage = token_bucket.MemoryStorage()
+                    self.notification_rate_limiters[notification_type] = token_bucket.Limiter(notif_rate_limit * 10, 10, storage)
+                can_notify = self.notification_rate_limiters[notification_type].consume('global', 10)
+                if not can_notify:
+                    log.info("%s notification rate limited at %f fps" % (str(notification_type), notif_rate_limit))
+                return can_notify
+            else:
+                return True
+
+        return True
+
     def listen_notify_q(self):
         while True:
             task = self.notify_q.dequeue()
             if task == -1:
                 break
             notification_type, notification_payload = task
-            self.notification_handlers[notification_type](*notification_payload)
+            if self.can_notify(notification_type):
+                self.notification_handlers[notification_type](*notification_payload)
 
     def stop(self):
         self.notify_q.enqueue(-1)

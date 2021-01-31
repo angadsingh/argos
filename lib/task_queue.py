@@ -5,12 +5,17 @@ import collections
 import threading
 from abc import ABC
 
+from appmetrics import metrics
+
+from lib import gauge, get_metric_prefix
+
 
 class TaskQueue(ABC):
-    def __init__(self, max_size):
+    def __init__(self, max_size, metric_prefix=None):
         self.__cv = threading.Condition()
         self.__q = collections.deque()
         self.max_size = max_size
+        self.metric_prefix = get_metric_prefix(self, metric_prefix)
 
     def abrupt_stop(self, stop_element):
         with self.__cv:
@@ -30,6 +35,7 @@ class TaskQueue(ABC):
                     self.__q.popleft()
             self.__q.append(element)
             self.__cv.notifyAll()
+            gauge(self.metric_prefix, "queue_size").notify(len(self.__q))
 
     def read(self, timeout=None):
         with self.__cv:
@@ -44,6 +50,7 @@ class TaskQueue(ABC):
             element = self.__q.popleft()
             if notify:
                 self.__cv.notifyAll()
+            gauge(self.metric_prefix, "queue_size").notify(len(self.__q))
             return element
 
     def wait_for_empty(self, timeout=None):
@@ -64,8 +71,8 @@ class TaskQueue(ABC):
 
 
 class BlockingTaskQueue(TaskQueue):
-    def __init__(self, max_size):
-        super().__init__(max_size)
+    def __init__(self, max_size, metric_prefix = None):
+        super().__init__(max_size, metric_prefix)
 
     def enqueue(self, element):
         self._enqueue(element, wait=True)
@@ -75,8 +82,8 @@ class BlockingTaskQueue(TaskQueue):
 
 
 class NonBlockingTaskQueue(TaskQueue):
-    def __init__(self, max_size):
-        super().__init__(max_size)
+    def __init__(self, max_size, metric_prefix = None):
+        super().__init__(max_size, metric_prefix)
 
     def enqueue(self, element):
         self._enqueue(element, wait=False)
@@ -86,10 +93,10 @@ class NonBlockingTaskQueue(TaskQueue):
 
 
 class BlockingTaskSingleton(BlockingTaskQueue):
-    def __init__(self):
-        super().__init__(1)
+    def __init__(self, metric_prefix = None):
+        super().__init__(1, metric_prefix)
 
 
 class NonBlockingTaskSingleton(NonBlockingTaskQueue):
-    def __init__(self):
-        super().__init__(1)
+    def __init__(self, metric_prefix = None):
+        super().__init__(1, metric_prefix)

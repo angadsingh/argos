@@ -1,12 +1,14 @@
 import threading
 
 from detection.state_managers.object_state_manager import ObjectStateManager
-from lib.task_queue import BlockingTaskSingleton
+from lib.task_queue import BlockingTaskSingleton, BlockingTaskQueue
 from notifier import Notifier, NotificationTypes
 
+import logging
+log = logging.getLogger(__name__)
 
 class Broker():
-    def __init__(self, config, object_detector, pattern_detector, broker_q: BlockingTaskSingleton, notify_q: BlockingTaskSingleton, notifier = None):
+    def __init__(self, config, object_detector, pattern_detector, broker_q: BlockingTaskSingleton, notify_q: BlockingTaskQueue, notifier = None):
         self.config = config
         self.pattern_detector = pattern_detector
         self.object_state_manager = ObjectStateManager(object_detector, pattern_detector, pattern_detector.broker_q)
@@ -30,6 +32,7 @@ class Broker():
                 if self.config.pattern_detection_enabled:
                     (state, ts) = notification_payload
                     self.object_state_manager.add_state(state, ts)
+            log.info("enqueuing notification %s [%s]" % (notification_type, notification_payload))
             self.notify_q.enqueue((notification_type, notification_payload))
 
     def stop(self):

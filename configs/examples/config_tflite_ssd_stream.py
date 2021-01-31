@@ -4,6 +4,7 @@ from configs.constants import InputMode, DetectorType
 from detection.door_state_detectors import AdaptiveDoorStateDetector, SingleShotDoorStateDetector, \
     SingleShotFrameDiffDoorStateDetector
 from detection.state_managers.door_state_manager import DoorStates
+from notifier import NotificationTypes
 
 
 class Config(ConfigBase):
@@ -209,6 +210,19 @@ class Config(ConfigBase):
         self.mqtt_port = 1883
         self.mqtt_username = "mqtt"
         self.mqtt_password = "------"
+
+        # size of the notifiier queue. increase it if you have a slower network
+        # although the default is more than enough
+        self.notifier_queue_size = 1000
+
+        # set per second rate limits for different kinds of notifications
+        # can be fractional as well
+        self.notifier_rate_limits = {
+            NotificationTypes.OBJECT_DETECTED: 1,
+            NotificationTypes.PATTERN_DETECTED: 0,
+            NotificationTypes.DOOR_STATE_CHANGED: 0,
+            NotificationTypes.MOTION_STATE_CHANGED: 0.1
+        }
 
         ## INPUT CONFIG
 

@@ -22,7 +22,7 @@ class BaseTFObjectDetector(StateDetectorBase):
     def __init__(self, config):
         super().__init__()
         self.config = config
-        self.input_frame_q = BlockingTaskQueue(max_size=self.config.od_task_q_size)
+        self.input_frame_q = BlockingTaskQueue(max_size=self.config.od_task_q_size, metric_prefix='object_detector')
 
         if self.config.tf_detection_buffer_enabled:
             self.detection_buffer = DetectionBuffer(config.tf_detection_buffer_duration,
@@ -128,7 +128,7 @@ class BaseTFObjectDetector(StateDetectorBase):
             for box in det_boxes:
                 minx, miny, maxx, maxy, label, accuracy = box
                 image_path = "%s/detection_%s_%s.jpg" % (
-                    self.config.tf_output_detection_path, label, datetime.fromtimestamp(ts).strftime("%d-%m-%Y-%H-%M-%S"))
+                    self.config.tf_output_detection_path, label, datetime.fromtimestamp(ts).strftime("%d-%m-%Y-%H-%M-%S-%f"))
                 orig_box = minx + cropOffsetX, miny + cropOffsetY, maxx + cropOffsetX, maxy + cropOffsetY, label, accuracy
                 if self.config.tf_detection_buffer_enabled:
                     self.detection_buffer.add_detection((orig_box, image_path))

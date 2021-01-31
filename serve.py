@@ -1,6 +1,8 @@
 import logging
 import sys
 
+from detection.object_detector_base import BaseTFObjectDetector
+
 for _ in ("colormath.color_conversions", "colormath.color_objects"):
     logging.getLogger(_).setLevel(logging.CRITICAL)
 logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
@@ -14,7 +16,6 @@ import os
 from werkzeug.utils import secure_filename
 
 from base_detector import DetectorView
-from detection.detect_base import BaseTFObjectDetector
 
 log.info("package import START")
 import argparse

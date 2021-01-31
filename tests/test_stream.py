@@ -1,9 +1,11 @@
-import glob
 import logging
+from lib import setup_logging
+setup_logging()
+
+import glob
 import os
 import subprocess
 import threading
-import time
 import unittest
 
 import cv2
@@ -47,7 +49,6 @@ class MockNotifier(Notifier):
                         self.patterns_found = True
                         self.stopped = True
 
-FIRST_RUN = True
 
 class TestArgosStream(unittest.TestCase):
     @classmethod
