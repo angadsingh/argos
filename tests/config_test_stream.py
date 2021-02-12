@@ -1,6 +1,6 @@
 from configs.config_base import ConfigBase
 from configs.config_patterns import door_movement
-from configs.constants import DetectorType
+from lib.constants import DetectorType
 from detection.door_state_detectors import SingleShotFrameDiffDoorStateDetector
 
 

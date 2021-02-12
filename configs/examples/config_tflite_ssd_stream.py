@@ -1,9 +1,7 @@
 from configs.config_base import ConfigBase
 from configs.config_patterns import door_movement
-from configs.constants import InputMode, DetectorType
-from detection.door_state_detectors import AdaptiveDoorStateDetector, SingleShotDoorStateDetector, \
-    SingleShotFrameDiffDoorStateDetector
-from detection.state_managers.door_state_manager import DoorStates
+from lib.constants import InputMode, DetectorType
+from detection.door_state_detectors import SingleShotFrameDiffDoorStateDetector
 from notifier import NotificationTypes
 
 

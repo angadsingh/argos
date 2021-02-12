@@ -1,6 +1,4 @@
-import numpy
-
-from configs.constants import InputMode, DetectorType
+from lib.constants import DetectorType
 from notifier import NotificationTypes
 
 
@@ -79,5 +77,8 @@ class ConfigBase:
         }
         self.input_mode = None
         self.rtmp_stream_url = None
+        self.picam_resolution = (640, 480)
+        self.picam_framerate = 30
+        self.picam_format = "rgb"
         self.video_file_path = None
         self.video_in_sync = True

@@ -2,6 +2,7 @@ import logging
 
 from appmetrics import reporter, metrics
 
+from input import setup_input_stream
 from lib import setup_logging
 
 setup_logging()
@@ -23,7 +24,6 @@ from lib.framelimiter import FrameLimiter
 
 from base_detector import DetectorView
 from broker import Broker
-from configs.constants import InputMode
 from lib.getch import getch
 
 import argparse
@@ -60,15 +60,7 @@ class StreamDetector():
         log.info("TFObjectDetector init START")
         self.od.start()
 
-        if self.config.input_mode == InputMode.RTMP_STREAM:
-            from input.rtmpstream import RTMPVideoStream
-            self.vs = RTMPVideoStream(self.config.rtmp_stream_url).start()
-        elif self.config.input_mode == InputMode.PI_CAM:
-            from input.picamstream import PiVideoStream
-            self.vs = PiVideoStream(resolution=(640, 480), framerate=30).start()
-        elif self.config.input_mode == InputMode.VIDEO_FILE:
-            from input.videofilestream import VideoFileStream
-            self.vs = VideoFileStream(self.config.video_file_path, self.config.video_in_sync).start()
+        self.vs = setup_input_stream(self.config)
 
         self.od.wait_for_ready()
         log.info("TFObjectDetector init END")

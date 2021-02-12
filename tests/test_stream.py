@@ -14,7 +14,7 @@ from termcolor import colored
 
 from broker import Broker
 from configs.config_patterns.door_movement import MovementPatterns
-from configs.constants import InputMode
+from lib.constants import InputMode
 from detection.object_detector_streaming import StreamingTFObjectDetector
 from detection.pattern_detector import PatternDetector
 from detection.states import StateHistoryStep

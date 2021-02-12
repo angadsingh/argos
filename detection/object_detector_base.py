@@ -4,7 +4,7 @@ from datetime import datetime
 
 import numpy as np
 
-from configs.constants import DetectorType
+from lib.constants import DetectorType
 from detection.StateDetectorBase import StateDetectorBase
 from detection.state_managers.state_manager import CommittedOffset
 from lib.task_queue import BlockingTaskQueue

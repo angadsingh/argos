@@ -1,5 +1,5 @@
 from configs.config_base import ConfigBase
-from configs.constants import InputMode, DetectorType
+from lib.constants import DetectorType
 
 
 class Config(ConfigBase):
