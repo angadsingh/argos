@@ -10,8 +10,8 @@ log = logging.getLogger(__name__)
 class Broker():
     def __init__(self, config, object_detector, pattern_detector, broker_q: BlockingTaskSingleton, notify_q: BlockingTaskQueue, notifier = None):
         self.config = config
-        self.pattern_detector = pattern_detector
-        self.object_state_manager = ObjectStateManager(object_detector, pattern_detector, pattern_detector.broker_q)
+        if self.config.pattern_detection_enabled:
+            self.object_state_manager = ObjectStateManager(object_detector, pattern_detector, pattern_detector.broker_q)
         self.broker_q = broker_q
         self.notify_q = notify_q
         if notifier:

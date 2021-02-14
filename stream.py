@@ -50,9 +50,9 @@ class StreamDetector():
         self.active_video_feeds = 0
         self.config = config
         self.od = object_detector
-        self.pattern_detector = pattern_detector
-        self.door_state_manager = DoorStateManager(pattern_detector, pattern_detector.broker_q)
-        self.motion_state_manager = MotionStateManager(pattern_detector, pattern_detector.broker_q)
+        if self.config.pattern_detection_enabled:
+            self.door_state_manager = DoorStateManager(pattern_detector, pattern_detector.broker_q)
+            self.motion_state_manager = MotionStateManager(pattern_detector, pattern_detector.broker_q)
         self.motion_detector = SimpleMotionDetector(config)
         self.stopped = False
 
