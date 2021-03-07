@@ -1,4 +1,5 @@
 from lib.constants import DetectorType
+from lib.detection_buffer import SimpleDetectionBuffer
 from notifier import NotificationTypes
 
 
@@ -26,6 +27,7 @@ class ConfigBase:
         self.md_mask = None
         self.md_nmask = None
         self.md_blur_output_frame = False
+        self.md_show_masks = False
         self.od_blur_output_frame = False
 
         self.od_frame_rate = -1
@@ -37,9 +39,7 @@ class ConfigBase:
         self.tf_detection_masks = None
         self.tf_detection_nmasks = None
         self.tf_box_thresholds = None
-        self.tf_detection_buffer_enabled = False
-        self.tf_detection_buffer_duration = 3000
-        self.tf_detection_buffer_threshold = 4
+        self.tf_detection_buffer = SimpleDetectionBuffer()
         self.tf_detector_type = DetectorType.TFLITE
         self.tf_apply_md = False
         self.tf_od_frame_write = False

@@ -45,7 +45,7 @@ log.info("package import END")
 
 
 class StreamDetector():
-    def __init__(self, config, object_detector: BaseTFObjectDetector, pattern_detector: PatternDetector):
+    def __init__(self, config, object_detector: StreamingTFObjectDetector, pattern_detector: PatternDetector):
         self.output_video_frame_q = NonBlockingTaskSingleton()
         self.active_video_feeds = 0
         self.config = config
@@ -81,6 +81,9 @@ class StreamDetector():
         if self.t.is_alive():
             self.t.join()
         self.od.stop()
+
+    def is_alive(self):
+        return self.t.is_alive() and self.od.is_alive()
 
     def draw_masks(self, frame):
         if self.config.md_mask:
@@ -254,7 +257,14 @@ if __name__ == '__main__':
 
     log.info("start reading video file")
     sd.start()
-    sd.wait_for_completion()
+
+    while sd.wait_for_completion(1) and od.is_alive() and mb.is_alive() and f.is_alive():
+        pass
+    log.info("sd is alive: %s", str(sd.is_alive()))
+    log.info("od is alive: %s", str(od.is_alive()))
+    log.info("mb is alive: %s", str(mb.is_alive()))
+    log.info("f is alive: %s", str(f.is_alive()))
+    log.info("stopping argos..")
     sd.stop()
     mb.stop()
     if pattern_detector:

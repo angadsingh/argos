@@ -37,5 +37,9 @@ class Broker():
 
     def stop(self):
         self.broker_q.enqueue(-1)
-        self.t.join()
+        if self.t.is_alive():
+            self.t.join()
         self.notifier.stop()
+
+    def is_alive(self):
+        return self.t.is_alive() and self.notifier.is_alive()

@@ -1,47 +1,26 @@
+import logging
 import threading
-import time
-from datetime import datetime
 
-import numpy as np
-
-from lib.constants import DetectorType
-from detection.StateDetectorBase import StateDetectorBase
-from detection.state_managers.state_manager import CommittedOffset
-from lib.task_queue import BlockingTaskQueue
-from lib.detection_buffer import DetectionBuffer
-from lib.fps import FPS
 from termcolor import colored
 
-import logging
-
-from lib.framelimiter import FrameLimiter
+from detection.StateDetectorBase import StateDetectorBase
+from lib.constants import DetectorType
 
 log = logging.getLogger(__name__)
+
 
 class BaseTFObjectDetector(StateDetectorBase):
     def __init__(self, config):
         super().__init__()
         self.config = config
-        self.input_frame_q = BlockingTaskQueue(max_size=self.config.od_task_q_size, metric_prefix='object_detector')
-
-        if self.config.tf_detection_buffer_enabled:
-            self.detection_buffer = DetectionBuffer(config.tf_detection_buffer_duration,
-                                                    config.tf_detection_buffer_threshold)
-        self.fps = FPS(600, 100)
         self.ready = False
         self.__cv = threading.Condition()
-        self.latest_committed_offset = CommittedOffset.CURRENT
 
-    def start(self):
-        self.t = threading.Thread(target=self.detect_continuously, args=())
-        self.t.daemon = True
-        self.t.start()
-        return self
-
-    def stop(self):
-        self.input_frame_q.abrupt_stop(-1)
-        self.t.join()
-        self.fps.stop()
+    def wait_for_ready(self):
+        with self.__cv:
+            while not self.ready:
+                self.__cv.wait()
+            return self.ready
 
     def initialize_tf_model(self):
         with self.__cv:
@@ -55,15 +34,6 @@ class BaseTFObjectDetector(StateDetectorBase):
                                                   self.config.tf_path_to_labelmap)
             self.ready = True
             self.__cv.notifyAll()
-
-    def wait_for_ready(self):
-        with self.__cv:
-            while not self.ready:
-                self.__cv.wait()
-            return self.ready
-
-    def add_task(self, task):
-        self.input_frame_q.enqueue(task)
 
     def apply_od_filters(self, det_boxes, accuracy_threshold=None, box_thresholds=None, masks=None, nmasks=None):
         accuracy_threshold = self.config.tf_accuracy_threshold if accuracy_threshold is None else accuracy_threshold
@@ -94,7 +64,9 @@ class BaseTFObjectDetector(StateDetectorBase):
                                     detection_is_masked = False
                                     break
                             if detection_is_masked:
-                                log.info(colored("detection [%s] NOT allowed by any mask" % str((minx, miny, maxx, maxy)), 'grey'))
+                                log.info(
+                                    colored("detection [%s] NOT allowed by any mask" % str((minx, miny, maxx, maxy)),
+                                            'grey'))
                         if not detection_is_masked:
                             if nmasks:
                                 for nmask in nmasks:
@@ -112,63 +84,5 @@ class BaseTFObjectDetector(StateDetectorBase):
     def detect_image(self, frame, threshold=None, masks=None, nmasks=None):
         return self.apply_od_filters(
             self.tf_detector.DetectFromImage(frame),
-         accuracy_threshold=threshold, masks = masks, nmasks = nmasks
+            accuracy_threshold=threshold, masks=masks, nmasks=nmasks
         )
-
-    def detect_image_buffered(self, frame, cropped_frame, cropOffsetX, cropOffsetY, ts):
-        if not ts:
-            ts = time.time()
-        det_boxes = self.apply_od_filters(self.tf_detector.DetectFromImage(cropped_frame))
-        if det_boxes is not None and len(det_boxes) > 0:
-            detections = True
-            max_accuracy = -np.inf
-            max_accuracy_label = None
-            max_accuracy_img_path = None
-
-            for box in det_boxes:
-                minx, miny, maxx, maxy, label, accuracy = box
-                image_path = "%s/detection_%s_%s.jpg" % (
-                    self.config.tf_output_detection_path, label, datetime.fromtimestamp(ts).strftime("%d-%m-%Y-%H-%M-%S-%f"))
-                orig_box = minx + cropOffsetX, miny + cropOffsetY, maxx + cropOffsetX, maxy + cropOffsetY, label, accuracy
-                if self.config.tf_detection_buffer_enabled:
-                    self.detection_buffer.add_detection((orig_box, image_path))
-                else:
-                    if accuracy > max_accuracy:
-                        max_accuracy = accuracy
-                        max_accuracy_label = label
-                        max_accuracy_img_path = image_path
-                self.process_detection_intermeddiate(frame, orig_box, image_path)
-
-            if detections:
-                if self.config.tf_detection_buffer_enabled:
-                    label, accuracy, image_path = self.detection_buffer.get_max_cumulative_accuracy_label()
-                    self.process_detection_final(label, accuracy, image_path, ts)
-                    return label, accuracy
-                else:
-                    self.process_detection_final(max_accuracy_label, max_accuracy, max_accuracy_img_path, ts)
-                    return max_accuracy_label, max_accuracy
-
-        return None, None
-
-    def process_detection_intermeddiate(self, frame, orig_box, image_path):
-        pass
-
-    def process_detection_final(self, label, accuracy, image_path, ts):
-        pass
-
-    def detect_continuously(self):
-        self.initialize_tf_model()
-
-        limiter = FrameLimiter(self.config.od_frame_rate)
-        while True:
-            task = self.input_frame_q.dequeue()
-            if task == -1:
-                break
-            (frame, cropped_frame, (cropOffsetX, cropOffsetY), ts) = task
-            if not self.task_skipper.skip_task(ts):
-                limiter.limit()
-                self.fps.count()
-                cropped_frame = np.copy(cropped_frame)
-                cropped_frame.setflags(write=1)
-                self.detect_image_buffered(frame, cropped_frame, cropOffsetX, cropOffsetY, ts)
-            self.latest_committed_offset = ts

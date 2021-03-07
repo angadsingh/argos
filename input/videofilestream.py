@@ -61,4 +61,5 @@ class VideoFileStream:
 
     def stop(self):
         self.stopped = True
-        self.t.join()
+        if self.t.is_alive():
+            self.t.join()

@@ -44,6 +44,17 @@ class SimpleMotionDetector(StateDetectorBase):
                 is_contained = True
         return (minX, minY, maxX, maxY), is_contained
 
+    def show_masks(self, frame):
+        if self.config.md_mask:
+            if self.config.md_show_masks:
+                minX, minY, maxX, maxY = self.config.md_mask
+                cv2.rectangle(frame, (minX, minY), (maxX, maxY), (255, 255, 255), 1)
+
+        if self.config.md_nmask:
+            if self.config.md_show_masks:
+                nminX, nminY, nmaxX, nmaxY = self.config.md_nmask
+                cv2.rectangle(frame, (nminX, nminY), (nmaxX, nmaxY), (0, 0, 0), 1)
+
     def detect(self, frame):
         (minX, minY) = (np.inf, np.inf)
         (maxX, maxY) = (-np.inf, -np.inf)

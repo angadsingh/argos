@@ -9,11 +9,11 @@ def setup_input_stream(config):
         from input.picamstream import PiVideoStream
         kwargs = {}
         if hasattr(config, "picam_resolution"):
-            kwargs['picam_resolution'] = config.picam_resolution
+            kwargs['resolution'] = config.picam_resolution
         if hasattr(config, "picam_framerate"):
-            kwargs['picam_framerate'] = config.picam_framerate
+            kwargs['framerate'] = config.picam_framerate
         if hasattr(config, "picam_format"):
-            kwargs['picam_format'] = config.picam_format
+            kwargs['format'] = config.picam_format
         vs = PiVideoStream(**kwargs).start()
     elif config.input_mode == InputMode.VIDEO_FILE:
         from input.videofilestream import VideoFileStream

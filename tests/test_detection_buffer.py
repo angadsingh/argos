@@ -1,6 +1,6 @@
 import time
 import unittest
-from lib.detection_buffer import DetectionBuffer
+from lib.detection_buffer import SlidingWindowDetectionBuffer
 
 class TestDetectionBuffer(unittest.TestCase):
 	def test1(self):
@@ -22,7 +22,7 @@ class TestDetectionBuffer(unittest.TestCase):
 				(now, ((330, 113, 643, 462, 'personC', 0.5796730518341064), None))
 			]
 
-		detection_buffer = DetectionBuffer()
+		detection_buffer = SlidingWindowDetectionBuffer()
 		for t in test_case:
 			ts, box = t
 			detection_buffer.add_detection(box, ts)

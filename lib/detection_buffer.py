@@ -1,8 +1,43 @@
+import abc
 import time
 import logging
+import numpy as np
+
 log = logging.getLogger(__name__)
 
-class DetectionBuffer:
+
+class DetectionBuffer(abc.ABC):
+    @abc.abstractmethod
+    def get_max_accuracy_label(self):
+        pass
+
+    @abc.abstractmethod
+    def add_detection(self, detection, current_ts=None):
+        pass
+
+
+class SimpleDetectionBuffer(DetectionBuffer):
+    def __init__(self):
+        self.detections = []
+
+    def get_max_accuracy_label(self):
+        max_accuracy = -np.inf
+        max_accuracy_label = None
+        max_accuracy_img_path = None
+        for (box, image_path) in self.detections:
+            (minx, miny, maxx, maxy, label, accuracy) = box
+            if accuracy > max_accuracy:
+                max_accuracy = accuracy
+                max_accuracy_label = label
+                max_accuracy_img_path = image_path
+        self.detections.clear()
+        return (max_accuracy_label, max_accuracy, max_accuracy_img_path)
+
+    def add_detection(self, detection, current_ts=None):
+        self.detections.append(detection)
+
+
+class SlidingWindowDetectionBuffer(DetectionBuffer):
     def __init__(self, duration=3000, threshold_detections=4):
         self.duration = duration
         self.threshold_detections = threshold_detections
@@ -13,7 +48,7 @@ class DetectionBuffer:
             if current_ts - det['ts'] > self.duration:
                 self.buffer.remove(det)
 
-    def get_max_cumulative_accuracy_label(self):
+    def get_max_accuracy_label(self):
         if len(self.buffer) < self.threshold_detections:
             return (None, None)
 
@@ -40,6 +75,7 @@ class DetectionBuffer:
 
         return (max_wt_label, max_cum_lbl_acc, max_wt_img_path)
 
+    @abc.abstractmethod
     def add_detection(self, detection, current_ts=None):
         if current_ts is None:
             current_ts = int(round(time.time() * 1000))

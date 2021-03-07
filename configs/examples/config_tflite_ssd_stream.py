@@ -2,6 +2,7 @@ from configs.config_base import ConfigBase
 from configs.config_patterns import door_movement
 from lib.constants import InputMode, DetectorType
 from detection.door_state_detectors import SingleShotFrameDiffDoorStateDetector
+from lib.detection_buffer import SlidingWindowDetectionBuffer, SimpleDetectionBuffer
 from notifier import NotificationTypes
 
 
@@ -95,11 +96,12 @@ class Config(ConfigBase):
         # minimum size of the object detected (lets not detect a person inside a newspaper kept on the table or a photo frame)
         self.tf_box_thresholds = (150, 150)
 
-        # enable the detection buffer. this accumulates detections and the detector only reports one
+        # configure the detection buffer.
+        # the SimpleDetectionBuffer just uses the maximum accurate detection from a single frame
+        # the SlidingWindowDetectionBuffer accumulates detections and the detector only reports one
         # when buffer_threshold number of detections were found in buffer_duration millis
-        self.tf_detection_buffer_enabled = False
-        self.tf_detection_buffer_duration = 3000
-        self.tf_detection_buffer_threshold = 4
+        # self.tf_detection_buffer = SlidingWindowDetectionBuffer(3000, 4)
+        self.tf_detection_buffer = SimpleDetectionBuffer()
 
         # switch between TF1, TF2 or TFLITE
         self.tf_detector_type = DetectorType.TFLITE

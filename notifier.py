@@ -102,6 +102,10 @@ class Notifier():
 
     def stop(self):
         self.notify_q.enqueue(-1)
-        self.t.join()
+        if self.t.is_alive():
+            self.t.join()
         if self.config.send_mqtt:
             self.mqtt_heartbeat_timer.stop()
+
+    def is_alive(self):
+        return self.t.is_alive()
