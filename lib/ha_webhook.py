@@ -6,9 +6,6 @@ from urllib.parse import quote_plus
 import requests
 from retrying import retry, Retrying
 
-from paramiko import SSHClient
-from scp import SCPClient
-
 import logging
 
 log = logging.getLogger(__name__)
@@ -24,6 +21,9 @@ def log_retry(fn):
 class HaWebHook():
     def __init__(self, webhook_url, ssh_host = None, ssh_username = None, target_dir = None):
         self.webhook_url = webhook_url
+        if ssh_host:
+            from paramiko import SSHClient
+            from scp import SCPClient
         self.ssh_host = ssh_host
         self.target_dir = target_dir
         self.ssh_username = ssh_username
@@ -54,4 +54,5 @@ class HaWebHook():
         else:
             url = self.webhook_url.format(
                 quote_plus(label))
+        log.info(f"webhook: {url}")
         requests.post(url)
