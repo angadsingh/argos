@@ -5,8 +5,6 @@ import collections
 import threading
 from abc import ABC
 
-from appmetrics import metrics
-
 from lib import gauge, get_metric_prefix
 
 
@@ -71,7 +69,7 @@ class TaskQueue(ABC):
 
 
 class BlockingTaskQueue(TaskQueue):
-    def __init__(self, max_size, metric_prefix = None):
+    def __init__(self, max_size, metric_prefix=None):
         super().__init__(max_size, metric_prefix)
 
     def enqueue(self, element):
@@ -82,7 +80,7 @@ class BlockingTaskQueue(TaskQueue):
 
 
 class NonBlockingTaskQueue(TaskQueue):
-    def __init__(self, max_size, metric_prefix = None):
+    def __init__(self, max_size, metric_prefix=None):
         super().__init__(max_size, metric_prefix)
 
     def enqueue(self, element):
@@ -93,10 +91,10 @@ class NonBlockingTaskQueue(TaskQueue):
 
 
 class BlockingTaskSingleton(BlockingTaskQueue):
-    def __init__(self, metric_prefix = None):
+    def __init__(self, metric_prefix=None):
         super().__init__(1, metric_prefix)
 
 
 class NonBlockingTaskSingleton(NonBlockingTaskQueue):
-    def __init__(self, metric_prefix = None):
+    def __init__(self, metric_prefix=None):
         super().__init__(1, metric_prefix)

@@ -63,7 +63,7 @@ class PatternDetector():
                 self.state_history.insert(i, new_state)
                 inserted = True
 
-        self.detect_patterns()
+        # self.detect_patterns()
         return inserted
 
     def find_not_state_before_step(self, not_state: NotState, state_history, after_step_ts, from_idx, to_idx):

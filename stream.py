@@ -101,6 +101,7 @@ class StreamDetector():
             frame = self.vs.read()
             if frame is not None:
                 output_frame = frame.copy()
+                ts = time.time()
                 if self.config.tf_apply_md:
                     output_frame, crop, motion_outside = self.motion_detector.detect(output_frame)
                     if self.config.pattern_detection_enabled:
@@ -112,10 +113,9 @@ class StreamDetector():
                     if crop is not None:
                         minX, minY, maxX, maxY = crop
                         cropped_frame = frame[minY:maxY, minX:maxX]
-                        ts = time.time()
                         self.od.add_task((frame, cropped_frame, (minX, minY), ts))
                 else:
-                    self.od.add_task((frame, frame, (0, 0), None, None))
+                    self.od.add_task((frame, frame, (0, 0), ts))
 
                 self.draw_masks(output_frame)
 
@@ -255,7 +255,7 @@ if __name__ == '__main__':
     f.daemon = True
     f.start()
 
-    log.info("start reading video file")
+    log.info("start reading video input")
     sd.start()
 
     while sd.wait_for_completion(1) and od.is_alive() and mb.is_alive() and f.is_alive():
