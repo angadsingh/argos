@@ -22,7 +22,7 @@ class StreamingTFObjectDetector(BaseTFObjectDetector):
 
         self.latest_committed_offset = CommittedOffset.CURRENT
         self.broker_q = broker_q
-        self.output_video_frame_q = NonBlockingTaskSingleton()
+        self.output_video_frame_q = NonBlockingTaskSingleton(metric_prefix='od_video_frame_q')
         self.active_video_feeds = 0
 
     def start(self):

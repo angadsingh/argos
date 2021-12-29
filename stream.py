@@ -45,7 +45,7 @@ log.info("package import END")
 
 class StreamDetector():
     def __init__(self, config, object_detector: StreamingTFObjectDetector, pattern_detector: PatternDetector):
-        self.output_video_frame_q = NonBlockingTaskSingleton()
+        self.output_video_frame_q = NonBlockingTaskSingleton(metric_prefix='sd_video_frame_q')
         self.active_video_feeds = 0
         self.config = config
         self.od = object_detector

@@ -33,7 +33,7 @@ class PiVideoStream:
         self.stopped = False
 
         self.fps = FPS(50, 100)
-        self.output_frame = NonBlockingTaskSingleton()
+        self.output_frame = NonBlockingTaskSingleton(metric_prefix='picam_video_frame_q')
 
     def start(self):
         # start the thread to read frames from the video stream

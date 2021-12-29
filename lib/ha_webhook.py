@@ -1,7 +1,10 @@
 import os
-import threading
-import time
 from urllib.parse import quote_plus
+try:
+    from paramiko import SSHClient
+    from scp import SCPClient
+except ImportError:
+    pass
 
 import requests
 from retrying import retry, Retrying
@@ -21,9 +24,6 @@ def log_retry(fn):
 class HaWebHook():
     def __init__(self, webhook_url, ssh_host = None, ssh_username = None, target_dir = None):
         self.webhook_url = webhook_url
-        if ssh_host:
-            from paramiko import SSHClient
-            from scp import SCPClient
         self.ssh_host = ssh_host
         self.target_dir = target_dir
         self.ssh_username = ssh_username

@@ -28,7 +28,7 @@ class VideoFileStream:
         if self.in_sync:
             self.output_frame = BlockingTaskSingleton()
         else:
-            self.output_frame = NonBlockingTaskSingleton()
+            self.output_frame = NonBlockingTaskSingleton(metric_prefix='file_video_frame_q')
 
     def start(self):
         self.t = Thread(target=self.update, args=())

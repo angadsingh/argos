@@ -15,7 +15,7 @@ class RTMPVideoStream:
         log.info("rtmp capture init END")
         self.stopped = False
         self.fps = FPS(50, 100)
-        self.output_frame = NonBlockingTaskSingleton()
+        self.output_frame = NonBlockingTaskSingleton(metric_prefix='rtmp_video_frame_q')
 
     def start(self):
         self.t = Thread(target=self.update, args=())
