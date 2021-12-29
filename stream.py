@@ -15,7 +15,6 @@ import importlib
 import jsonpickle
 
 from detection.motion_detector import SimpleMotionDetector
-from detection.object_detector_base import BaseTFObjectDetector
 from detection.object_detector_streaming import StreamingTFObjectDetector
 from detection.pattern_detector import PatternDetector
 from detection.state_managers.door_state_manager import DoorStateManager

@@ -7,3 +7,4 @@ configs/config_tflite_ssd_debug.py
 configs/config_tflite_ssd_serve.py
 venv
 /tests/data/
+venv2
