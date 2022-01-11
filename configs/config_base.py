@@ -75,6 +75,10 @@ class ConfigBase:
             NotificationTypes.DOOR_STATE_CHANGED: 0,
             NotificationTypes.MOTION_STATE_CHANGED: 1
         }
+        self.notifier_notification_types = \
+            [NotificationTypes.OBJECT_DETECTED, NotificationTypes.PATTERN_DETECTED,
+            NotificationTypes.MOTION_STATE_CHANGED,
+            NotificationTypes.DOOR_STATE_CHANGED]
         self.input_mode = None
         self.rtmp_stream_url = None
         self.picam_resolution = (640, 480)

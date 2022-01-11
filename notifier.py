@@ -30,10 +30,11 @@ class Notifier():
             self.mqtt_heartbeat_timer = RepeatedTimer(self.config.mqtt_heartbeat_secs, self.mqtt.publish,
                                                       self.config.mqtt_state_topic, "none")
         elif self.config.send_webhook:
-            self.ha_webhook_od = HaWebHook(self.config.ha_webhook_object_detect_url, self.config.ha_webhook_ssh_host,
+            self.ha_webhook_od = HaWebHook("ha_webhook_od", self.config.ha_webhook_object_detect_url, self.config.ha_webhook_ssh_host,
                                         self.config.ha_webhook_ssh_username, self.config.ha_webhook_target_dir)
-            self.ha_webhook_pd = HaWebHook(self.config.ha_webhook_pattern_detect_url)
-            self.ha_webhook_ot = HaWebHook(self.config.ha_webhook_state_detect_url)
+            self.ha_webhook_pd = HaWebHook("ha_webhook_pd", self.config.ha_webhook_pattern_detect_url, self.config.ha_webhook_ssh_host,
+                                        self.config.ha_webhook_ssh_username, self.config.ha_webhook_target_dir)
+            self.ha_webhook_ot = HaWebHook("ha_webhook_ot", self.config.ha_webhook_state_detect_url)
 
         self.notification_handlers = {
             NotificationTypes.OBJECT_DETECTED: self.notify_object_detected,
@@ -97,8 +98,9 @@ class Notifier():
             if task == -1:
                 break
             notification_type, notification_payload = task
-            if self.can_notify(notification_type):
-                self.notification_handlers[notification_type](*notification_payload)
+            if notification_type in self.config.notifier_notification_types:
+                if self.can_notify(notification_type):
+                    self.notification_handlers[notification_type](*notification_payload)
 
     def stop(self):
         self.notify_q.enqueue(-1)

@@ -22,7 +22,8 @@ def log_retry(fn):
     return fn_with_logging
 
 class HaWebHook():
-    def __init__(self, webhook_url, ssh_host = None, ssh_username = None, target_dir = None):
+    def __init__(self, name, webhook_url, ssh_host = None, ssh_username = None, target_dir = None):
+        self.name = name
         self.webhook_url = webhook_url
         self.ssh_host = ssh_host
         self.target_dir = target_dir
@@ -42,11 +43,11 @@ class HaWebHook():
     def send(self, label, img_path = None):
         if self.ssh_host:
             scp_log = "%s to %s on %s" % (img_path, self.target_dir, self.ssh_host)
-            log.info("scp'ing %s" % scp_log)
+            log.info("[%s] scp'ing %s" % (self.name, scp_log))
             try:
                 self.do_scp(img_path)
             except TimeoutError as e:
-                log.warning("timed out during scp of %s" % scp_log)
+                log.warning("[%s] timed out during scp of %s" % (self.name, scp_log))
         url = None
         if img_path:
             url = self.webhook_url.format(
@@ -54,5 +55,5 @@ class HaWebHook():
         else:
             url = self.webhook_url.format(
                 quote_plus(label))
-        log.info(f"webhook: {url}")
+        log.info(f"[{self.name}] webhook: {url}")
         requests.post(url)
